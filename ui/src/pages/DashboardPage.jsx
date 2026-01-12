@@ -99,9 +99,6 @@ function KPICard({ title, value, subtitle, icon: Icon, color = "blue", trend, tr
               <span className={`text-xs font-medium ${trendColorClasses[trendColor]}`}>{trend}</span>
             </div>
           )}
-          {!secondaryValue && !trend && (
-            <div className="h-5" />
-          )}
         </div>
       </CardContent>
     </Card>
