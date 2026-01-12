@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -24,6 +26,13 @@ import {
   Shield,
   Database,
   Save,
+  Sun,
+  Moon,
+  Monitor,
+  Key,
+  Mail,
+  Lock,
+  CheckCircle,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -61,7 +70,6 @@ export default function SettingsPage() {
 
   const handleProfileSubmit = (e) => {
     e.preventDefault()
-    // In production, this would call an API to update the user profile
     alert("Profile update - This would save changes in production")
   }
 
@@ -71,48 +79,58 @@ export default function SettingsPage() {
       alert("Passwords do not match")
       return
     }
-    // In production, this would call an API to change password
     alert("Password change - This would update the password in production")
   }
+
+  const themeOptions = [
+    { value: "light", label: "Light", icon: Sun },
+    { value: "dark", label: "Dark", icon: Moon },
+    { value: "system", label: "System", icon: Monitor },
+  ]
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Settings className="h-8 w-8" />
+          <div className="p-2 bg-gradient-to-br from-slate-500 to-slate-700 rounded-lg text-white">
+            <Settings className="h-6 w-6" />
+          </div>
           Settings
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-1">
           Manage your account and application preferences
         </p>
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">
-            <User className="mr-2 h-4 w-4" />
+        <TabsList className="bg-muted p-1 rounded-lg">
+          <TabsTrigger value="profile" className="gap-2">
+            <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="appearance">
-            <Palette className="mr-2 h-4 w-4" />
+          <TabsTrigger value="appearance" className="gap-2">
+            <Palette className="h-4 w-4" />
             Appearance
           </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="mr-2 h-4 w-4" />
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
           {isAdmin() && (
-            <TabsTrigger value="system">
-              <Database className="mr-2 h-4 w-4" />
+            <TabsTrigger value="system" className="gap-2">
+              <Database className="h-4 w-4" />
               System
             </TabsTrigger>
           )}
         </TabsList>
 
-        <TabsContent value="profile" className="mt-4 space-y-4">
+        <TabsContent value="profile" className="mt-6 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-blue-500" />
+                Profile Information
+              </CardTitle>
               <CardDescription>Update your account details</CardDescription>
             </CardHeader>
             <CardContent>
@@ -130,19 +148,33 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, email: e.target.value })
-                      }
-                    />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        className="pl-10"
+                        value={profileData.email}
+                        onChange={(e) =>
+                          setProfileData({ ...profileData, email: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Input value={user?.role?.replace("_", " ")} disabled />
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">
+                      {user?.role?.replace("_", " ")}
+                    </Badge>
+                    {isAdmin() && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <Button type="submit">
                   <Save className="mr-2 h-4 w-4" />
@@ -155,7 +187,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <Key className="h-5 w-5 text-amber-500" />
                 Change Password
               </CardTitle>
               <CardDescription>Update your account password</CardDescription>
@@ -164,14 +196,18 @@ export default function SettingsPage() {
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={profileData.currentPassword}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, currentPassword: e.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      className="pl-10"
+                      value={profileData.currentPassword}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, currentPassword: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -198,6 +234,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <Button type="submit" variant="outline">
+                  <Key className="mr-2 h-4 w-4" />
                   Change Password
                 </Button>
               </form>
@@ -205,65 +242,89 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="appearance" className="mt-4">
+        <TabsContent value="appearance" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Appearance</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-purple-500" />
+                Appearance
+              </CardTitle>
               <CardDescription>Customize the look and feel</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
                 <Label>Theme</Label>
-                <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-3 gap-4">
+                  {themeOptions.map((option) => {
+                    const Icon = option.icon
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => setTheme(option.value)}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          theme === option.value
+                            ? "border-primary bg-primary/5"
+                            : "border-transparent bg-muted hover:bg-muted/80"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className={`p-3 rounded-full ${
+                            theme === option.value ? "bg-primary text-primary-foreground" : "bg-background"
+                          }`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <span className="font-medium">{option.label}</span>
+                          {theme === option.value && (
+                            <CheckCircle className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  Select your preferred color theme
+                  Select your preferred color theme for the application
                 </p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications" className="mt-4">
+        <TabsContent value="notifications" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-amber-500" />
+                Notification Preferences
+              </CardTitle>
               <CardDescription>Configure how you receive notifications</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {Object.entries(notificationSettings).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <Label className="capitalize">
+                <div
+                  key={key}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="space-y-0.5">
+                    <Label className="text-base capitalize">
                       {key.replace(/([A-Z])/g, " $1").trim()}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      {key === "emailNotifications" && "Receive email notifications"}
+                      {key === "emailNotifications" && "Receive email notifications for important updates"}
                       {key === "deploymentAlerts" && "Get alerted about deployment status changes"}
-                      {key === "approvalRequests" && "Notify when approvals are requested"}
-                      {key === "weeklyDigest" && "Receive weekly summary emails"}
+                      {key === "approvalRequests" && "Notify when approvals are requested for your review"}
+                      {key === "weeklyDigest" && "Receive weekly summary emails of activities"}
                     </p>
                   </div>
-                  <Button
-                    variant={value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setNotificationSettings({ ...notificationSettings, [key]: !value })
+                  <Switch
+                    checked={value}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings({ ...notificationSettings, [key]: checked })
                     }
-                  >
-                    {value ? "Enabled" : "Disabled"}
-                  </Button>
+                  />
                 </div>
               ))}
-              <Button className="mt-4">
+              <Button>
                 <Save className="mr-2 h-4 w-4" />
                 Save Preferences
               </Button>
@@ -272,10 +333,13 @@ export default function SettingsPage() {
         </TabsContent>
 
         {isAdmin() && (
-          <TabsContent value="system" className="mt-4">
+          <TabsContent value="system" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>System Configuration</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-slate-500" />
+                  System Configuration
+                </CardTitle>
                 <CardDescription>Manage application-wide settings</CardDescription>
               </CardHeader>
               <CardContent>
@@ -286,19 +350,19 @@ export default function SettingsPage() {
                 ) : (
                   <div className="space-y-4">
                     {config?.rows?.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between border-b pb-4">
-                        <div>
-                          <Label>{item.key}</Label>
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="space-y-0.5">
+                          <Label className="font-medium">{item.key}</Label>
                           <p className="text-sm text-muted-foreground">
                             {item.description || "No description"}
                           </p>
                         </div>
                         <Input
                           className="w-48"
-                          value={item.value}
-                          onChange={(e) => {
-                            // Debounced update would be better in production
-                          }}
+                          defaultValue={item.value}
                           onBlur={(e) => {
                             if (e.target.value !== item.value) {
                               updateConfigMutation.mutate({
@@ -311,9 +375,10 @@ export default function SettingsPage() {
                       </div>
                     ))}
                     {(!config?.rows || config.rows.length === 0) && (
-                      <p className="text-center text-muted-foreground py-4">
-                        No configuration items found
-                      </p>
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Database className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p>No configuration items found</p>
+                      </div>
                     )}
                   </div>
                 )}

@@ -319,7 +319,9 @@ export default function ReleaseNotesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <FileText className="h-8 w-8" />
+            <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg text-white">
+              <FileText className="h-6 w-6" />
+            </div>
             Release Notes
           </h1>
           <p className="text-muted-foreground">

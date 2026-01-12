@@ -293,7 +293,9 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <UserCog className="h-8 w-8" />
+            <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg text-white">
+              <UserCog className="h-6 w-6" />
+            </div>
             Users
           </h1>
           <p className="text-muted-foreground">Manage user accounts and roles</p>

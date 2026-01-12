@@ -43,9 +43,106 @@ import {
   Trash2,
   GripVertical,
   RotateCcw,
+  ListChecks,
+  CheckCircle2,
+  XCircle,
+  Hash,
+  Search,
+  LayoutGrid,
+  List,
+  FileText,
+  MoreHorizontal,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+function ChecklistCard({ item, onEdit, onDelete }) {
+  return (
+    <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
+      <div className={`h-1.5 bg-gradient-to-r ${item.isActive !== false ? 'from-emerald-500 to-green-500' : 'from-slate-400 to-slate-500'}`} />
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between mb-3">
+          <button
+            onClick={() => onEdit(item)}
+            className="flex-1 text-left"
+          >
+            <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1">
+              {item.label}
+            </h3>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(item)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(item)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <Hash className="h-4 w-4" />
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.key}</code>
+        </div>
+
+        {item.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            {item.description}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between">
+          {item.isActive !== false ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+              <CheckCircle2 className="h-3 w-3" />
+              Active
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-50 text-slate-700">
+              <XCircle className="h-3 w-3" />
+              Inactive
+            </div>
+          )}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <ListChecks className="h-3 w-3" />
+            Order: {item.sortOrder || "-"}
+          </div>
+        </div>
+
+        <button
+          onClick={() => onEdit(item)}
+          className="mt-4 w-full text-center text-sm text-primary hover:underline font-medium"
+        >
+          Edit Item
+        </button>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function ChecklistItemsPage() {
+  const [search, setSearch] = useState("")
+  const [view, setView] = useState("cards")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null })
@@ -130,7 +227,7 @@ export default function ChecklistItemsPage() {
     const payload = {
       ...formData,
       key: formData.key.toLowerCase().replace(/\s+/g, "_"),
-      sortOrder: editingItem ? editingItem.sortOrder : (checklistItems?.rows?.length || 0) + 1,
+      sortOrder: editingItem ? editingItem.sortOrder : (items.length || 0) + 1,
     }
 
     if (editingItem) {
@@ -152,14 +249,24 @@ export default function ChecklistItemsPage() {
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
-  const items = checklistItems?.rows || checklistItems || []
+  const allItems = checklistItems?.rows || checklistItems || []
+  const items = allItems.filter(item =>
+    search === "" ||
+    item.label?.toLowerCase().includes(search.toLowerCase()) ||
+    item.key?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const activeCount = allItems.filter(item => item.isActive !== false).length
+  const inactiveCount = allItems.filter(item => item.isActive === false).length
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <CheckSquare className="h-8 w-8" />
+            <div className="p-2 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg text-white">
+              <CheckSquare className="h-6 w-6" />
+            </div>
             Checklist Items
           </h1>
           <p className="text-muted-foreground">
@@ -167,7 +274,7 @@ export default function ChecklistItemsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {items.length === 0 && (
+          {allItems.length === 0 && (
             <Button variant="outline" onClick={handleSeedDefaults} disabled={seedMutation.isPending}>
               {seedMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -251,18 +358,106 @@ export default function ChecklistItemsPage() {
         </div>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-l-4 border-l-teal-500">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Items</p>
+                <p className="text-2xl font-bold">{allItems.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Checklist items configured</p>
+              </div>
+              <div className="p-3 bg-teal-100 rounded-full">
+                <ListChecks className="h-5 w-5 text-teal-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Items</p>
+                <p className="text-2xl font-bold">{activeCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">Used in new deployments</p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-slate-400">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Inactive Items</p>
+                <p className="text-2xl font-bold">{inactiveCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">Disabled items</p>
+              </div>
+              <div className="p-3 bg-slate-100 rounded-full">
+                <XCircle className="h-5 w-5 text-slate-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Checklist Items</CardTitle>
-          <CardDescription>
-            These items will be used as the checklist for all deployments.
-            Active items will appear in the deployment checklist.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search checklist items..."
+                className="pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant={view === "cards" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={view === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {items.map((item) => (
+                <ChecklistCard
+                  key={item.id}
+                  item={item}
+                  onEdit={openEditDialog}
+                  onDelete={(item) => setDeleteDialog({ open: true, item })}
+                />
+              ))}
+              {items.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  {allItems.length === 0
+                    ? "No checklist items configured. Click \"Load Defaults\" to add the standard items, or create custom ones."
+                    : "No matching checklist items found"}
+                </div>
+              )}
             </div>
           ) : (
             <Table>
@@ -277,7 +472,7 @@ export default function ChecklistItemsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item, index) => (
+                {items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
@@ -287,41 +482,60 @@ export default function ChecklistItemsPage() {
                         {item.key}
                       </code>
                     </TableCell>
-                    <TableCell className="font-medium">{item.label}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        onClick={() => openEditDialog(item)}
+                        className="hover:text-primary hover:underline transition-colors"
+                      >
+                        {item.label}
+                      </button>
+                    </TableCell>
                     <TableCell className="text-muted-foreground max-w-xs truncate">
                       {item.description || "-"}
                     </TableCell>
                     <TableCell>
                       {item.isActive !== false ? (
-                        <Badge variant="success">Active</Badge>
+                        <Badge variant="success" className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Active
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary">Inactive</Badge>
+                        <Badge variant="secondary" className="gap-1">
+                          <XCircle className="h-3 w-3" />
+                          Inactive
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteDialog({ open: true, item })}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(item)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeleteDialog({ open: true, item })}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No checklist items configured. Click "Load Defaults" to add the standard items, or create custom ones.
+                      {allItems.length === 0
+                        ? "No checklist items configured. Click \"Load Defaults\" to add the standard items, or create custom ones."
+                        : "No matching checklist items found"}
                     </TableCell>
                   </TableRow>
                 )}

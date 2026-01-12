@@ -139,7 +139,7 @@ export function Sidebar() {
       <div className="px-2 py-2 border-t border-slate-800">
         {!collapsed && (
           <div className="text-center mb-2">
-            <span className="text-[10px] text-slate-500">v1.1.0</span>
+            <span className="text-[10px] text-slate-500">v1.2.0</span>
           </div>
         )}
         <Button
