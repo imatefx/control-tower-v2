@@ -1,0 +1,26 @@
+{
+  "name": "control-tower-backend",
+  "version": "1.0.0",
+  "description": "Control Tower Backend - Moleculer microservices",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node node_modules/moleculer/bin/moleculer-runner.js --repl --hot services/**/*.service.js",
+    "start": "node node_modules/moleculer/bin/moleculer-runner.js services/**/*.service.js"
+  },
+  "dependencies": {
+    "moleculer": "^0.14.32",
+    "moleculer-db": "^0.8.26",
+    "moleculer-db-adapter-sequelize": "^0.2.17",
+    "moleculer-web": "^0.10.7",
+    "sequelize": "^6.37.1",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
