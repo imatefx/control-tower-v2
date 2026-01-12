@@ -9,18 +9,84 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Moon, Sun, User, LogOut, Settings, Search } from "lucide-react"
+import { Bell, Moon, Sun, User, LogOut, Settings, Search, Rocket, AlertTriangle, Clock, CheckCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { deploymentsAPI } from "@/services/api"
 
 export function Header() {
   const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
 
+  // Fetch deployments for notifications
+  const { data: deployments } = useQuery({
+    queryKey: ["deployments-notifications"],
+    queryFn: () => deploymentsAPI.list({}),
+    refetchInterval: 60000, // Refresh every minute
+  })
+
+  // Calculate notification items
+  const getNotifications = () => {
+    if (!deployments?.rows) return []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    return deployments.rows
+      .filter(d => d.status !== "Released" && d.nextDeliveryDate)
+      .map(d => {
+        const deliveryDate = new Date(d.nextDeliveryDate)
+        deliveryDate.setHours(0, 0, 0, 0)
+        const daysUntil = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24))
+
+        let type = "info"
+        let message = ""
+
+        if (daysUntil < 0) {
+          type = "overdue"
+          message = `${Math.abs(daysUntil)} day(s) overdue`
+        } else if (daysUntil === 0) {
+          type = "urgent"
+          message = "Due today"
+        } else if (daysUntil <= 3) {
+          type = "warning"
+          message = `Due in ${daysUntil} day(s)`
+        } else if (daysUntil <= 7) {
+          type = "info"
+          message = `Due in ${daysUntil} days`
+        } else {
+          return null
+        }
+
+        return {
+          id: d.id,
+          productName: d.productName,
+          type,
+          message,
+          daysUntil
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+      .slice(0, 10)
+  }
+
+  const notifications = getNotifications()
+  const urgentCount = notifications.filter(n => n.type === "overdue" || n.type === "urgent").length
+
   const handleLogout = () => {
     logout()
     navigate("/login")
+  }
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "overdue": return <AlertTriangle className="h-4 w-4 text-red-500" />
+      case "urgent": return <Clock className="h-4 w-4 text-orange-500" />
+      case "warning": return <Clock className="h-4 w-4 text-yellow-500" />
+      default: return <Rocket className="h-4 w-4 text-blue-500" />
+    }
   }
 
   return (
@@ -36,12 +102,53 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
-            3
-          </span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {notifications.length > 0 && (
+                <span className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] text-white ${urgentCount > 0 ? 'bg-destructive' : 'bg-blue-500'}`}>
+                  {notifications.length}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Deployment Alerts</span>
+              {urgentCount > 0 && (
+                <span className="text-xs text-destructive">{urgentCount} urgent</span>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {notifications.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                <p>No upcoming deployments</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  onClick={() => navigate(`/deployments?id=${notification.id}`)}
+                  className="flex items-start gap-3 py-3 cursor-pointer"
+                >
+                  {getNotificationIcon(notification.type)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{notification.productName}</p>
+                    <p className={`text-xs ${notification.type === 'overdue' ? 'text-red-500' : notification.type === 'urgent' ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                      {notification.message}
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/deployments")} className="justify-center text-primary">
+              View all deployments
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button
           variant="ghost"

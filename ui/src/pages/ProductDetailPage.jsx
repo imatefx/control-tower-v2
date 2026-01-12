@@ -24,8 +24,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Package, Rocket, Users, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Package,
+  Rocket,
+  Users,
+  ExternalLink,
+  Loader2,
+  Pencil,
+  Trash2,
+  FlaskConical,
+  Calendar,
+  FileText,
+  Link as LinkIcon,
+  User,
+  Mail,
+  Settings2,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+
+const formatStatus = (status) => {
+  if (!status) return "Not Started"
+  return status.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams()
@@ -44,10 +68,9 @@ export default function ProductDetailPage() {
     queryFn: () => deploymentsAPI.list({ productId: id }),
   })
 
-  const { data: subProducts } = useQuery({
+  const { data: childProducts } = useQuery({
     queryKey: ["products", "children", id],
     queryFn: () => productsAPI.getChildren(id),
-    enabled: product?.type === "main",
   })
 
   const deleteMutation = useMutation({
@@ -88,6 +111,28 @@ export default function ProductDetailPage() {
     completed: "success",
   }
 
+  const eap = product.eap || {}
+  const isEapActive = eap.isActive
+  const documentation = product.documentation || {}
+  const relevantDocs = product.relevantDocs || {}
+  const adapterServices = product.adapterServices || {}
+  const children = childProducts?.children || []
+
+  const docTypes = [
+    { key: "productGuide", label: "Product Guide" },
+    { key: "releaseNotes", label: "Release Notes" },
+    { key: "demoScript", label: "Demo Script" },
+    { key: "testCases", label: "Test Cases" },
+    { key: "productionChecklist", label: "Production Checklist" },
+  ]
+
+  const adapterServiceTypes = [
+    { key: "hasEquipmentSA", label: "Equipment - Service Assurance" },
+    { key: "hasEquipmentSE", label: "Equipment - Service Enablement" },
+    { key: "hasMappingService", label: "Mapping Service" },
+    { key: "hasConstructionService", label: "Construction Service" },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -97,69 +142,196 @@ export default function ProductDetailPage() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Package className="h-8 w-8" />
-            {product.name}
-          </h1>
-          <p className="text-muted-foreground">{product.description || "No description"}</p>
-        </div>
-        {canEdit() && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" asChild>
-              <Link to={`/products/${id}/edit`}>
-                <Pencil className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setDeleteDialog(true)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+              <Package className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">{product.name}</h1>
+              <p className="text-muted-foreground">{product.description || "No description"}</p>
+            </div>
           </div>
-        )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isEapActive && (
+            <Badge variant="purple" className="gap-1">
+              <FlaskConical className="h-3 w-3" />
+              EAP Active
+            </Badge>
+          )}
+          {product.isAdapter && (
+            <Badge variant="indigo" className="gap-1">
+              <Settings2 className="h-3 w-3" />
+              Adapter
+            </Badge>
+          )}
+          {canEdit() && (
+            <>
+              <Button variant="outline" size="icon" asChild>
+                <Link to={`/products/${id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setDeleteDialog(true)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Type</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Product Owner
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge>{product.type}</Badge>
+            <div className="font-semibold">{product.productOwner || "Not assigned"}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Engineering Owner
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge variant={product.isEap ? "warning" : "success"}>
-              {product.isEap ? "EAP" : "GA"}
-            </Badge>
+            <div className="font-semibold">{product.engineeringOwner || "Not assigned"}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Deployments</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Next Release
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{deployments?.total || 0}</div>
+            <div className="font-semibold">
+              {product.nextReleaseDate
+                ? new Date(product.nextReleaseDate).toLocaleDateString()
+                : "Not scheduled"}
+            </div>
           </CardContent>
         </Card>
-        {product.parent && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Parent Product</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Link
-                to={`/products/${product.parent.id}`}
-                className="text-primary hover:underline"
-              >
-                {product.parent.name}
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Deployments
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{product.deploymentCount || 0}</div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* EAP Section */}
+      {isEapActive && (
+        <Card className="border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+              <FlaskConical className="h-5 w-5" />
+              Early Access Program (EAP)
+            </CardTitle>
+            <CardDescription>This product is currently in EAP</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <div className="text-sm text-muted-foreground">Start Date</div>
+                <div className="font-medium">
+                  {eap.startDate ? new Date(eap.startDate).toLocaleDateString() : "Not set"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">End Date</div>
+                <div className="font-medium">
+                  {eap.endDate ? new Date(eap.endDate).toLocaleDateString() : "Not set"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Jira Board</div>
+                {eap.jiraBoardUrl ? (
+                  <a
+                    href={eap.jiraBoardUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary hover:underline flex items-center gap-1"
+                  >
+                    Open Board <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <div className="text-muted-foreground">Not configured</div>
+                )}
+              </div>
+            </div>
+            {eap.clientIds && eap.clientIds.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-sm text-muted-foreground mb-2">EAP Clients</div>
+                <div className="flex flex-wrap gap-2">
+                  {eap.clientIds.map((clientId, i) => (
+                    <Badge key={i} variant="secondary">{clientId}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Adapter Services */}
+      {product.isAdapter && (
+        <Card className="border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
+              <Settings2 className="h-5 w-5" />
+              Adapter Services
+            </CardTitle>
+            <CardDescription>Supported adapter services for this product</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2">
+              {adapterServiceTypes.map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-2">
+                  {adapterServices[key] ? (
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-slate-400" />
+                  )}
+                  <span className={adapterServices[key] ? "font-medium" : "text-muted-foreground"}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Parent Product */}
+      {product.parentId && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Parent Product</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Link
+              to={`/products/${product.parentId}`}
+              className="text-primary hover:underline font-medium flex items-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              {product.parentName || "View Parent"}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="deployments">
         <TabsList>
@@ -167,12 +339,16 @@ export default function ProductDetailPage() {
             <Rocket className="mr-2 h-4 w-4" />
             Deployments
           </TabsTrigger>
-          {product.type === "main" && (
+          {children.length > 0 && (
             <TabsTrigger value="subproducts">
               <Package className="mr-2 h-4 w-4" />
-              Sub Products
+              Sub Products ({children.length})
             </TabsTrigger>
           )}
+          <TabsTrigger value="documentation">
+            <FileText className="mr-2 h-4 w-4" />
+            Documentation
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="deployments" className="mt-4">
@@ -188,7 +364,8 @@ export default function ProductDetailPage() {
                     <TableHead>Client</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Environment</TableHead>
-                    <TableHead>Version</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Target Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -203,17 +380,24 @@ export default function ProductDetailPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusColors[deployment.status]}>
-                          {deployment.status?.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
+                          {formatStatus(deployment.status)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {deployment.environment?.toLowerCase() === "qa"
-                          ? "QA"
-                          : deployment.environment
-                            ? deployment.environment.charAt(0).toUpperCase() + deployment.environment.slice(1)
-                            : "-"}
+                        <Badge variant="outline">
+                          {deployment.environment?.toUpperCase() || "-"}
+                        </Badge>
                       </TableCell>
-                      <TableCell>{deployment.version || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {deployment.deploymentType?.toUpperCase() || "-"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {deployment.nextDeliveryDate
+                          ? new Date(deployment.nextDeliveryDate).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/deployments/${deployment.id}`}>
@@ -225,7 +409,8 @@ export default function ProductDetailPage() {
                   ))}
                   {(!deployments?.rows || deployments.rows.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        <Rocket className="h-8 w-8 mx-auto mb-2 opacity-30" />
                         No deployments found
                       </TableCell>
                     </TableRow>
@@ -236,7 +421,7 @@ export default function ProductDetailPage() {
           </Card>
         </TabsContent>
 
-        {product.type === "main" && (
+        {children.length > 0 && (
           <TabsContent value="subproducts" className="mt-4">
             <Card>
               <CardHeader>
@@ -249,19 +434,25 @@ export default function ProductDetailPage() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Product Owner</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {subProducts?.map((subProduct) => (
+                    {children.map((subProduct) => (
                       <TableRow key={subProduct.id}>
                         <TableCell className="font-medium">{subProduct.name}</TableCell>
-                        <TableCell>{subProduct.description || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs truncate">
+                          {subProduct.description || "-"}
+                        </TableCell>
+                        <TableCell>{subProduct.productOwner || "-"}</TableCell>
                         <TableCell>
-                          <Badge variant={subProduct.isEap ? "warning" : "success"}>
-                            {subProduct.isEap ? "EAP" : "GA"}
-                          </Badge>
+                          {subProduct.eap?.isActive ? (
+                            <Badge variant="purple">EAP</Badge>
+                          ) : (
+                            <Badge variant="success">GA</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" asChild>
@@ -272,19 +463,82 @@ export default function ProductDetailPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {(!subProducts || subProducts.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
-                          No sub products found
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
           </TabsContent>
         )}
+
+        <TabsContent value="documentation" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Documentation</CardTitle>
+              <CardDescription>Product documentation links and status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {docTypes.map(({ key, label }) => {
+                  const isRelevant = relevantDocs[key] !== false
+                  const hasDoc = documentation[key]
+                  return (
+                    <div
+                      key={key}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        !isRelevant ? "bg-muted/50 opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className={`h-5 w-5 ${hasDoc ? "text-emerald-500" : "text-muted-foreground"}`} />
+                        <div>
+                          <div className="font-medium">{label}</div>
+                          {!isRelevant && (
+                            <div className="text-xs text-muted-foreground">Not applicable</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {hasDoc ? (
+                          <a
+                            href={hasDoc}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            View
+                          </a>
+                        ) : isRelevant ? (
+                          <Badge variant="destructive-soft" className="gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Missing
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">N/A</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Notification Emails */}
+              {product.notificationEmails && product.notificationEmails.length > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Notification Emails</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {product.notificationEmails.map((email, i) => (
+                      <Badge key={i} variant="outline">{email}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>

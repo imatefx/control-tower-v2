@@ -31,7 +31,8 @@ module.exports = function(collection) {
           // Use force: true only in development to recreate tables
           // In production, use migrations instead
           const force = process.env.DB_SYNC_FORCE === "true";
-          await this.adapter.model.sync({ force });
+          const alter = process.env.NODE_ENV === "development" || process.env.DB_SYNC_ALTER === "true";
+          await this.adapter.model.sync({ force, alter });
           this.logger.info(`Database synced for ${this.name}`);
         }
       } catch (err) {

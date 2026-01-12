@@ -8,6 +8,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -45,19 +53,144 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Plus, FileText, Search, Loader2, Package, Calendar, Tag, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import {
+  Plus,
+  FileText,
+  Search,
+  Loader2,
+  Package,
+  Calendar,
+  Tag,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  LayoutGrid,
+  List,
+  Sparkles,
+  Bug,
+  Zap,
+  AlertTriangle,
+  Clock,
+  ChevronRight
+} from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 const itemTypes = [
-  { value: "feature", label: "Feature", color: "success" },
-  { value: "bugfix", label: "Bug Fix", color: "destructive" },
-  { value: "improvement", label: "Improvement", color: "info" },
-  { value: "breaking", label: "Breaking Change", color: "warning" },
-  { value: "deprecation", label: "Deprecation", color: "secondary" },
+  { value: "feature", label: "Feature", color: "success", icon: Sparkles, gradient: "from-emerald-500 to-green-500", bgLight: "bg-emerald-50", textColor: "text-emerald-700" },
+  { value: "bugfix", label: "Bug Fix", color: "destructive", icon: Bug, gradient: "from-red-500 to-rose-500", bgLight: "bg-red-50", textColor: "text-red-700" },
+  { value: "improvement", label: "Improvement", color: "info", icon: Zap, gradient: "from-blue-500 to-indigo-500", bgLight: "bg-blue-50", textColor: "text-blue-700" },
+  { value: "breaking", label: "Breaking Change", color: "warning", icon: AlertTriangle, gradient: "from-amber-500 to-orange-500", bgLight: "bg-amber-50", textColor: "text-amber-700" },
+  { value: "deprecation", label: "Deprecation", color: "secondary", icon: Clock, gradient: "from-slate-400 to-slate-500", bgLight: "bg-slate-50", textColor: "text-slate-700" },
 ]
+
+function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
+  const productName = release.product?.name || products?.rows?.find(p => p.id === release.productId)?.name || "Unknown Product"
+
+  // Get the most impactful item type for the card color
+  const getGradient = () => {
+    if (!release.items || release.items.length === 0) return "from-slate-400 to-slate-500"
+    if (release.items.some(i => i.type === "breaking")) return "from-amber-500 to-orange-500"
+    if (release.items.some(i => i.type === "feature")) return "from-emerald-500 to-green-500"
+    if (release.items.some(i => i.type === "improvement")) return "from-blue-500 to-indigo-500"
+    if (release.items.some(i => i.type === "bugfix")) return "from-red-500 to-rose-500"
+    return "from-slate-400 to-slate-500"
+  }
+
+  // Count items by type
+  const itemCounts = itemTypes.reduce((acc, type) => {
+    acc[type.value] = release.items?.filter(i => i.type === type.value).length || 0
+    return acc
+  }, {})
+
+  return (
+    <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
+      <div className={`h-1.5 bg-gradient-to-r ${getGradient()}`} />
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between mb-3">
+          <button
+            onClick={() => onEdit(release)}
+            className="flex-1 text-left"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{productName}</span>
+            </div>
+            <h3 className="font-semibold text-lg hover:text-primary transition-colors flex items-center gap-2">
+              v{release.version}
+            </h3>
+          </button>
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(release)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDelete(release)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <Calendar className="h-4 w-4" />
+          <span>{new Date(release.releaseDate).toLocaleDateString()}</span>
+        </div>
+
+        {release.summary && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            {release.summary}
+          </p>
+        )}
+
+        {/* Item type badges */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {itemTypes.map(type => {
+            const count = itemCounts[type.value]
+            if (count === 0) return null
+            const TypeIcon = type.icon
+            return (
+              <div
+                key={type.value}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${type.bgLight} ${type.textColor}`}
+              >
+                <TypeIcon className="h-3 w-3" />
+                {count} {type.label}{count > 1 ? 's' : ''}
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => onEdit(release)}
+          className="w-full text-center text-sm text-primary hover:underline font-medium flex items-center justify-center gap-1"
+        >
+          View Details
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function ReleaseNotesPage() {
   const [search, setSearch] = useState("")
+  const [view, setView] = useState("cards")
   const [productFilter, setProductFilter] = useState("all")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRelease, setEditingRelease] = useState(null)
@@ -341,131 +474,159 @@ export default function ReleaseNotesPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search release notes..."
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Select value={productFilter} onValueChange={setProductFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Products" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Products</SelectItem>
-            {products?.rows?.map((product) => (
-              <SelectItem key={product.id} value={product.id}>
-                {product.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center h-32">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {releaseNotes?.rows?.map((release) => (
-            <Card key={release.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      {release.product?.name || products?.rows?.find(p => p.id === release.productId)?.name || "Unknown Product"}
-                      <Badge variant="outline" className="ml-2">
-                        <Tag className="h-3 w-3 mr-1" />
-                        v{release.version}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(release.releaseDate).toLocaleDateString()}
-                    </CardDescription>
-                  </div>
-                  {canEdit() && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(release)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteDialog({ open: true, release })}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search release notes..."
+                  className="pl-10"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={productFilter} onValueChange={setProductFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Products" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Products</SelectItem>
+                  {products?.rows?.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant={view === "cards" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={view === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {releaseNotes?.rows?.map((release) => (
+                <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  products={products}
+                  onEdit={openEditDialog}
+                  onDelete={(r) => setDeleteDialog({ open: true, release: r })}
+                  canEdit={canEdit()}
+                />
+              ))}
+              {(!releaseNotes?.rows || releaseNotes.rows.length === 0) && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  No release notes found
                 </div>
-                {release.summary && (
-                  <p className="text-sm mt-2">{release.summary}</p>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead>Release Date</TableHead>
+                  <TableHead>Changes</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {releaseNotes?.rows?.map((release) => {
+                  const productName = release.product?.name || products?.rows?.find(p => p.id === release.productId)?.name || "Unknown"
+                  return (
+                    <TableRow key={release.id}>
+                      <TableCell className="font-medium">
+                        <button
+                          onClick={() => openEditDialog(release)}
+                          className="hover:text-primary hover:underline transition-colors"
+                        >
+                          {productName}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          <Tag className="h-3 w-3 mr-1" />
+                          v{release.version}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(release.releaseDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {itemTypes.map(type => {
+                            const count = release.items?.filter(i => i.type === type.value).length || 0
+                            if (count === 0) return null
+                            return (
+                              <Badge key={type.value} variant={type.color} className="text-xs">
+                                {count} {type.label}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canEdit() && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(release)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeleteDialog({ open: true, release })}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                {(!releaseNotes?.rows || releaseNotes.rows.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No release notes found
+                    </TableCell>
+                  </TableRow>
                 )}
-              </CardHeader>
-              <CardContent>
-                {release.items && release.items.length > 0 ? (
-                  <Accordion type="single" collapsible>
-                    {itemTypes.map((type) => {
-                      const typeItems = release.items.filter((i) => i.type === type.value)
-                      if (typeItems.length === 0) return null
-                      return (
-                        <AccordionItem key={type.value} value={type.value}>
-                          <AccordionTrigger>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={type.color}>{type.label}</Badge>
-                              <span className="text-sm text-muted-foreground">
-                                ({typeItems.length})
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <ul className="space-y-2 pl-4">
-                              {typeItems.map((item, idx) => (
-                                <li key={idx} className="text-sm">
-                                  <span className="font-medium">{item.title}</span>
-                                  {item.description && (
-                                    <p className="text-muted-foreground mt-1">
-                                      {item.description}
-                                    </p>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )
-                    })}
-                  </Accordion>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No items documented</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-          {(!releaseNotes?.rows || releaseNotes.rows.length === 0) && (
-            <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-muted-foreground">No release notes found</p>
-              </CardContent>
-            </Card>
+              </TableBody>
+            </Table>
           )}
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <AlertDialogContent>

@@ -15,7 +15,7 @@ module.exports = {
     entityValidator: {
       email: { type: "email" },
       name: { type: "string", min: 1, max: 100 },
-      role: { type: "enum", values: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] }
+      role: { type: "enum", values: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager", "general_manager", "head_of_products", "avp"] }
     }
   },
 
@@ -27,7 +27,7 @@ module.exports = {
       passwordHash: { type: DataTypes.STRING(255), allowNull: false },
       name: { type: DataTypes.STRING(100), allowNull: false },
       role: {
-        type: DataTypes.ENUM("admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"),
+        type: DataTypes.ENUM("admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager", "general_manager", "head_of_products", "avp"),
         defaultValue: "user"
       },
       assignedProductIds: { type: DataTypes.ARRAY(DataTypes.UUID), defaultValue: [] },
@@ -49,7 +49,7 @@ module.exports = {
         email: "email",
         password: "string|min:8",
         name: "string",
-        role: { type: "enum", values: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"], optional: true }
+        role: { type: "enum", values: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager", "general_manager", "head_of_products", "avp"], optional: true }
       },
       async handler(ctx) {
         const { email, password, name, role = "user" } = ctx.params;

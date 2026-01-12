@@ -8,11 +8,11 @@ module.exports = {
   mixins: [DbMixin("deployments")],
 
   settings: {
-    fields: ["id", "clientId", "clientName", "productId", "productName", "status",
+    fields: ["id", "clientId", "clientName", "clientIds", "clientNames", "productId", "productName", "status",
              "deploymentType", "environment", "nextDeliveryDate", "featureName",
-             "releaseItems", "deliveryPerson", "notes", "documentation", "relevantDocs",
+             "releaseItems", "deliveryPerson", "ownerId", "ownerName", "notes", "documentation", "relevantDocs",
              "equipmentSAStatus", "equipmentSEStatus", "mappingStatus", "constructionStatus",
-             "blockedComments", "statusHistory", "createdAt", "updatedAt"],
+             "blockedComments", "statusHistory", "notificationEmails", "lastNotificationSent", "createdAt", "updatedAt"],
     entityValidator: {
       clientId: { type: "uuid" },
       productId: { type: "uuid" },
@@ -25,10 +25,14 @@ module.exports = {
     name: "deployment",
     define: {
       id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-      clientId: { type: DataTypes.UUID, allowNull: false },
-      clientName: { type: DataTypes.STRING(200), allowNull: false },
+      clientId: { type: DataTypes.UUID },
+      clientName: { type: DataTypes.STRING(200) },
+      clientIds: { type: DataTypes.ARRAY(DataTypes.UUID), defaultValue: [] },
+      clientNames: { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] },
       productId: { type: DataTypes.UUID, allowNull: false },
       productName: { type: DataTypes.STRING(200), allowNull: false },
+      ownerId: { type: DataTypes.UUID },
+      ownerName: { type: DataTypes.STRING(100) },
       status: {
         type: DataTypes.ENUM("Not Started", "In Progress", "Blocked", "Released"),
         defaultValue: "Not Started"
@@ -53,7 +57,9 @@ module.exports = {
       mappingStatus: { type: DataTypes.STRING(20), defaultValue: "not_started" },
       constructionStatus: { type: DataTypes.STRING(20), defaultValue: "not_started" },
       blockedComments: { type: DataTypes.JSONB, defaultValue: [] },
-      statusHistory: { type: DataTypes.JSONB, defaultValue: [] }
+      statusHistory: { type: DataTypes.JSONB, defaultValue: [] },
+      notificationEmails: { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] },
+      lastNotificationSent: { type: DataTypes.JSONB, defaultValue: {} }
     },
     options: { timestamps: true, paranoid: true, underscored: true }
   },
@@ -153,12 +159,37 @@ module.exports = {
     before: {
       create: [
         async function(ctx) {
-          const client = await ctx.call("clients.get", { id: ctx.params.clientId });
           const product = await ctx.call("products.get", { id: ctx.params.productId });
-          if (!client) throw new Error("Client not found");
           if (!product) throw new Error("Product not found");
-          ctx.params.clientName = client.name;
           ctx.params.productName = product.name;
+
+          // Handle multi-client for EAP deployments
+          if (ctx.params.deploymentType === "eap" && ctx.params.clientIds && ctx.params.clientIds.length > 0) {
+            const clientNames = [];
+            for (const clientId of ctx.params.clientIds) {
+              const client = await ctx.call("clients.get", { id: clientId });
+              if (client) clientNames.push(client.name);
+            }
+            ctx.params.clientNames = clientNames;
+            // Set first client as primary for backwards compatibility
+            ctx.params.clientId = ctx.params.clientIds[0];
+            ctx.params.clientName = clientNames[0] || "";
+          } else if (ctx.params.clientId) {
+            const client = await ctx.call("clients.get", { id: ctx.params.clientId });
+            if (!client) throw new Error("Client not found");
+            ctx.params.clientName = client.name;
+            ctx.params.clientIds = [ctx.params.clientId];
+            ctx.params.clientNames = [client.name];
+          }
+
+          // Owner fallback logic: selected owner > delivery lead > engineering owner
+          if (!ctx.params.ownerId && !ctx.params.ownerName) {
+            if (product.deliveryLead) {
+              ctx.params.ownerName = product.deliveryLead;
+            } else if (product.engineeringOwner) {
+              ctx.params.ownerName = product.engineeringOwner;
+            }
+          }
         }
       ]
     },

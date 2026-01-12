@@ -57,3 +57,61 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Gantt Chart Custom Styles */
+.gantt-container {
+  @apply rounded-lg border bg-white;
+}
+
+.gantt-container ._2dZTy {
+  @apply font-sans text-sm;
+}
+
+/* Task row hover effect */
+.gantt-container ._3lLk3:hover {
+  @apply bg-slate-50;
+}
+
+/* Today marker line */
+.gantt-container ._2eZzQ {
+  stroke: #6366f1;
+  stroke-width: 2;
+}
+
+/* Grid lines */
+.gantt-container ._2q1Kt {
+  stroke: #e2e8f0;
+}
+
+/* Header styling */
+.gantt-container ._9w8d5 {
+  @apply bg-slate-50 text-slate-700 font-medium;
+}
+
+/* Task bar styling */
+.gantt-container ._31ERP {
+  @apply transition-all duration-200;
+}
+
+.gantt-container ._31ERP:hover {
+  filter: brightness(1.1);
+  cursor: pointer;
+}
+
+/* Tooltip styling override */
+.gantt-container ._3T42e {
+  @apply !bg-transparent !border-0 !shadow-none;
+}
+
+/* Scrollbar styling */
+.gantt-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.gantt-container::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded;
+}
+
+.gantt-container::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded hover:bg-slate-400;
+}

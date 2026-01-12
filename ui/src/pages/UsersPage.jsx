@@ -36,19 +36,47 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Search, UserCog, Loader2, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  Plus,
+  Search,
+  UserCog,
+  Loader2,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  LayoutGrid,
+  List,
+  Mail,
+  Calendar,
+  Shield,
+  Crown,
+  User,
+  Eye,
+  Briefcase,
+  Target,
+  Settings,
+  Star,
+  Package,
+  Award,
+} from "lucide-react"
 
 const roles = [
   { value: "admin", label: "Admin" },
-  { value: "user", label: "User" },
-  { value: "viewer", label: "Viewer" },
+  { value: "general_manager", label: "General Manager" },
+  { value: "head_of_products", label: "Head of Products" },
+  { value: "avp", label: "AVP" },
   { value: "delivery_lead", label: "Delivery Lead" },
   { value: "product_owner", label: "Product Owner" },
   { value: "engineering_manager", label: "Engineering Manager" },
+  { value: "user", label: "User" },
+  { value: "viewer", label: "Viewer" },
 ]
 
 const roleColors = {
   admin: "destructive",
+  general_manager: "purple",
+  head_of_products: "indigo",
+  avp: "cyan",
   user: "default",
   viewer: "secondary",
   delivery_lead: "info",
@@ -56,8 +84,136 @@ const roleColors = {
   engineering_manager: "success",
 }
 
+const roleConfig = {
+  admin: {
+    color: "bg-gradient-to-r from-red-500 to-rose-500",
+    icon: Crown,
+    bgLight: "bg-red-50",
+    textColor: "text-red-700"
+  },
+  general_manager: {
+    color: "bg-gradient-to-r from-purple-500 to-violet-500",
+    icon: Star,
+    bgLight: "bg-purple-50",
+    textColor: "text-purple-700"
+  },
+  head_of_products: {
+    color: "bg-gradient-to-r from-indigo-500 to-blue-500",
+    icon: Package,
+    bgLight: "bg-indigo-50",
+    textColor: "text-indigo-700"
+  },
+  avp: {
+    color: "bg-gradient-to-r from-cyan-500 to-sky-500",
+    icon: Award,
+    bgLight: "bg-cyan-50",
+    textColor: "text-cyan-700"
+  },
+  user: {
+    color: "bg-gradient-to-r from-blue-500 to-indigo-500",
+    icon: User,
+    bgLight: "bg-blue-50",
+    textColor: "text-blue-700"
+  },
+  viewer: {
+    color: "bg-gradient-to-r from-slate-400 to-slate-500",
+    icon: Eye,
+    bgLight: "bg-slate-50",
+    textColor: "text-slate-700"
+  },
+  delivery_lead: {
+    color: "bg-gradient-to-r from-teal-500 to-emerald-500",
+    icon: Briefcase,
+    bgLight: "bg-teal-50",
+    textColor: "text-teal-700"
+  },
+  product_owner: {
+    color: "bg-gradient-to-r from-amber-500 to-orange-500",
+    icon: Target,
+    bgLight: "bg-amber-50",
+    textColor: "text-amber-700"
+  },
+  engineering_manager: {
+    color: "bg-gradient-to-r from-emerald-500 to-green-500",
+    icon: Settings,
+    bgLight: "bg-emerald-50",
+    textColor: "text-emerald-700"
+  },
+}
+
+function UserCard({ user, onEdit, onDelete }) {
+  const config = roleConfig[user.role] || roleConfig.user
+  const RoleIcon = config.icon
+
+  return (
+    <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
+      <div className={`h-1.5 ${config.color}`} />
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between mb-3">
+          <button
+            onClick={() => onEdit(user)}
+            className="flex-1 text-left"
+          >
+            <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1">
+              {user.name}
+            </h3>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(user)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(user)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <Mail className="h-4 w-4" />
+          <span className="truncate">{user.email}</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bgLight} ${config.textColor}`}>
+            <RoleIcon className="h-3 w-3" />
+            {user.role?.replace("_", " ")}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            {new Date(user.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+
+        <button
+          onClick={() => onEdit(user)}
+          className="mt-4 w-full text-center text-sm text-primary hover:underline font-medium"
+        >
+          Edit User
+        </button>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function UsersPage() {
   const [search, setSearch] = useState("")
+  const [view, setView] = useState("cards")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [formData, setFormData] = useState({
@@ -227,7 +383,7 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -237,12 +393,44 @@ export default function UsersPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant={view === "cards" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={view === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setView("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {users?.rows?.map((user) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  onEdit={openEditDialog}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {(!users?.rows || users.rows.length === 0) && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  No users found
+                </div>
+              )}
             </div>
           ) : (
             <Table>
@@ -258,7 +446,14 @@ export default function UsersPage() {
               <TableBody>
                 {users?.rows?.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        onClick={() => openEditDialog(user)}
+                        className="hover:text-primary hover:underline transition-colors"
+                      >
+                        {user.name}
+                      </button>
+                    </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge variant={roleColors[user.role]}>

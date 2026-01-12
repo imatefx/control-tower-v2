@@ -48,14 +48,158 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Plus, Search, Users, ExternalLink, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import {
+  Plus,
+  Search,
+  Users,
+  ExternalLink,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  LayoutGrid,
+  List,
+  Rocket,
+  Globe,
+  Mail,
+  Building2,
+  Star,
+  Crown,
+  Sparkles,
+} from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 const regions = ["NA", "EU", "APAC", "LATAM", "MEA"]
 const tiers = ["enterprise", "business", "starter"]
 
+// Client Card Component
+function ClientCard({ client, onEdit, onDelete, canEdit }) {
+  const tierConfig = {
+    enterprise: { color: "bg-gradient-to-r from-amber-500 to-orange-500", icon: Crown, badgeVariant: "default" },
+    business: { color: "bg-gradient-to-r from-blue-500 to-indigo-500", icon: Star, badgeVariant: "secondary" },
+    starter: { color: "bg-gradient-to-r from-slate-400 to-slate-500", icon: Sparkles, badgeVariant: "outline" },
+  }
+
+  const tier = client.tier || "business"
+  const config = tierConfig[tier] || tierConfig.business
+  const TierIcon = config.icon
+
+  return (
+    <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
+      <div className={`h-1.5 ${config.color}`} />
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between mb-3">
+          <Link to={`/clients/${client.id}`} className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-1.5 rounded-lg bg-purple-100">
+                <Building2 className="h-4 w-4 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1">
+                {client.name}
+              </h3>
+            </div>
+          </Link>
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(client)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDelete(client)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* Code Badge */}
+        {client.code && (
+          <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono mb-3 inline-block">
+            {client.code}
+          </code>
+        )}
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <Badge variant={config.badgeVariant} className="text-xs gap-1">
+            <TierIcon className="h-3 w-3" />
+            {tier.charAt(0).toUpperCase() + tier.slice(1)}
+          </Badge>
+          {client.region && (
+            <Badge variant="outline" className="text-xs gap-1">
+              <Globe className="h-3 w-3" />
+              {client.region}
+            </Badge>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+            <div className="flex items-center gap-1.5 text-xs text-blue-600">
+              <Rocket className="h-3 w-3" />
+              Deployments
+            </div>
+            <p className="font-semibold text-lg text-blue-900 dark:text-blue-100">{client.deploymentCount || 0}</p>
+          </div>
+          <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="h-3 w-3" />
+              Products
+            </div>
+            <p className="font-semibold text-lg">{client.productCount || 0}</p>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        {(client.contactName || client.contactEmail) && (
+          <div className="pt-3 border-t space-y-1.5">
+            {client.contactName && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3 w-3" />
+                <span>{client.contactName}</span>
+              </div>
+            )}
+            {client.contactEmail && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Mail className="h-3 w-3" />
+                <span className="truncate">{client.contactEmail}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* View Details Link */}
+        <Link
+          to={`/clients/${client.id}`}
+          className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+        >
+          View Details
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function ClientsPage() {
   const [search, setSearch] = useState("")
+  const [view, setView] = useState("cards") // Default to cards
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, client: null })
@@ -165,8 +309,13 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Clients</h1>
-          <p className="text-muted-foreground">Manage your client base</p>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 text-white">
+              <Users className="h-6 w-6" />
+            </div>
+            Clients
+          </h1>
+          <p className="text-muted-foreground mt-1">Manage your client base</p>
         </div>
         {canEdit() && (
           <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
@@ -288,26 +437,67 @@ export default function ClientsPage() {
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search clients..."
-                className="pl-10"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+      {/* Search and View Toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search clients..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+          <Button
+            variant={view === "cards" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setView("cards")}
+            className="gap-2"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Cards
+          </Button>
+          <Button
+            variant={view === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setView("list")}
+            className="gap-2"
+          >
+            <List className="h-4 w-4" />
+            List
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : view === "cards" ? (
+        /* Card View */
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {clients?.rows?.map((client) => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              onEdit={openEditDialog}
+              onDelete={(c) => setDeleteDialog({ open: true, client: c })}
+              canEdit={canEdit()}
+            />
+          ))}
+          {(!clients?.rows || clients.rows.length === 0) && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>No clients found</p>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : (
+          )}
+        </div>
+      ) : (
+        /* List View */
+        <Card>
+          <CardContent className="pt-6">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -324,10 +514,10 @@ export default function ClientsPage() {
                 {clients?.rows?.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <Link to={`/clients/${client.id}`} className="flex items-center gap-2 hover:text-primary">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{client.name}</span>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {client.code ? (
@@ -397,9 +587,9 @@ export default function ClientsPage() {
                 )}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <AlertDialogContent>
