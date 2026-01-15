@@ -84,7 +84,7 @@ import { Gantt, ViewMode } from "gantt-task-react"
 import "gantt-task-react/dist/index.css"
 
 const environments = ["production", "sandbox", "qa"]
-const statuses = ["not_started", "in_progress", "blocked", "completed"]
+const statuses = ["Not Started", "In Progress", "Blocked", "Released"]
 const deploymentTypes = [
   { value: "ga", label: "GA Release", icon: Rocket, color: "emerald", description: "General availability release to all clients" },
   { value: "eap", label: "EAP Release", icon: FlaskConical, color: "purple", description: "Early access program for selected clients" },
@@ -137,13 +137,9 @@ function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
 
   const statusColors = {
     "Not Started": "bg-slate-100 text-slate-700",
-    not_started: "bg-slate-100 text-slate-700",
     "In Progress": "bg-blue-100 text-blue-700",
-    in_progress: "bg-blue-100 text-blue-700",
     "Blocked": "bg-rose-100 text-rose-700",
-    blocked: "bg-rose-100 text-rose-700",
     "Released": "bg-emerald-100 text-emerald-700",
-    completed: "bg-emerald-100 text-emerald-700",
   }
 
   const gradientColors = {
@@ -211,8 +207,8 @@ function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
 
         {/* Tags Row */}
         <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[deployment.status] || statusColors.not_started}`}>
-            {formatStatus(deployment.status)}
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[deployment.status] || statusColors["Not Started"]}`}>
+            {deployment.status || "Not Started"}
           </span>
           <Badge variant="outline" className="text-xs">
             {formatEnvironment(deployment.environment)}
@@ -440,7 +436,7 @@ export default function DeploymentsPage() {
     clientId: "",
     clientIds: [],
     environment: "production",
-    status: "not_started",
+    status: "Not Started",
     ownerName: "",
     featureName: "",
     targetDate: "",
@@ -501,7 +497,7 @@ export default function DeploymentsPage() {
       clientId: "",
       clientIds: [],
       environment: "production",
-      status: "not_started",
+      status: "Not Started",
       ownerName: "",
       featureName: "",
       targetDate: "",
@@ -527,7 +523,7 @@ export default function DeploymentsPage() {
       clientId: deployment.clientId || "",
       clientIds: deployment.clientIds || [],
       environment: deployment.environment || "production",
-      status: deployment.status || "not_started",
+      status: deployment.status || "Not Started",
       ownerName: deployment.ownerName || "",
       featureName: deployment.featureName || "",
       targetDate: deployment.nextDeliveryDate ? deployment.nextDeliveryDate.split("T")[0] : "",
@@ -589,27 +585,27 @@ export default function DeploymentsPage() {
   }
 
   const statusColors = {
-    not_started: "secondary",
-    in_progress: "info",
-    blocked: "destructive",
-    completed: "success",
+    "Not Started": "secondary",
+    "In Progress": "info",
+    "Blocked": "destructive",
+    "Released": "success",
   }
 
   const statusConfig = {
-    not_started: { icon: Clock, color: "slate" },
-    in_progress: { icon: Activity, color: "blue" },
-    blocked: { icon: AlertTriangle, color: "rose" },
-    completed: { icon: CheckCircle, color: "emerald" },
+    "Not Started": { icon: Clock, color: "slate" },
+    "In Progress": { icon: Activity, color: "blue" },
+    "Blocked": { icon: AlertTriangle, color: "rose" },
+    "Released": { icon: CheckCircle, color: "emerald" },
   }
 
   const groupedByStatus = (deployments?.rows || []).reduce((acc, d) => {
-    const status = d.status || "not_started"
+    const status = d.status || "Not Started"
     if (!acc[status]) acc[status] = []
     acc[status].push(d)
     return acc
   }, {})
 
-  const statusOrder = ["not_started", "in_progress", "blocked", "completed"]
+  const statusOrder = ["Not Started", "In Progress", "Blocked", "Released"]
 
   const filteredDeployments = statusFilter === "all"
     ? deployments?.rows
@@ -625,24 +621,16 @@ export default function DeploymentsPage() {
     if (!deployments?.rows) return []
 
     const statusColorMap = {
-      not_started: "#94a3b8",
       "Not Started": "#94a3b8",
-      in_progress: "#3b82f6",
       "In Progress": "#3b82f6",
-      blocked: "#ef4444",
       "Blocked": "#ef4444",
-      completed: "#22c55e",
       "Released": "#22c55e",
     }
 
     const progressColorMap = {
-      not_started: "#cbd5e1",
       "Not Started": "#cbd5e1",
-      in_progress: "#60a5fa",
       "In Progress": "#60a5fa",
-      blocked: "#f87171",
       "Blocked": "#f87171",
-      completed: "#4ade80",
       "Released": "#4ade80",
     }
 
@@ -659,7 +647,7 @@ export default function DeploymentsPage() {
         }
 
         const progress = deployment.checklistProgress || 0
-        const status = deployment.status || "not_started"
+        const status = deployment.status || "Not Started"
 
         return {
           id: deployment.id,

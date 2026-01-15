@@ -315,12 +315,12 @@ export default function DashboardPage() {
     return days !== null && days < 0 && d.status !== "Released"
   })
 
-  // Status counts
+  // Status counts - backend returns Title Case status values
   const statusCounts = {
-    not_started: stats.deploymentsByStatus?.not_started || 0,
-    in_progress: stats.deploymentsByStatus?.in_progress || 0,
-    blocked: stats.deploymentsByStatus?.blocked || 0,
-    completed: stats.deploymentsByStatus?.completed || 0,
+    not_started: stats.deploymentsByStatus?.["Not Started"] || stats.deploymentsByStatus?.not_started || 0,
+    in_progress: stats.deploymentsByStatus?.["In Progress"] || stats.deploymentsByStatus?.in_progress || 0,
+    blocked: stats.deploymentsByStatus?.["Blocked"] || stats.deploymentsByStatus?.blocked || 0,
+    completed: stats.deploymentsByStatus?.["Released"] || stats.deploymentsByStatus?.completed || 0,
   }
   const totalDeployments = Object.values(statusCounts).reduce((a, b) => a + b, 0)
 

@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "node node_modules/moleculer/bin/moleculer-runner.js --repl --hot services/**/*.service.js",
-    "start": "node node_modules/moleculer/bin/moleculer-runner.js services/**/*.service.js"
+    "start": "node node_modules/moleculer/bin/moleculer-runner.js services/**/*.service.js",
+    "test": "node tests/e2e.test.js",
+    "test:e2e": "node tests/e2e.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

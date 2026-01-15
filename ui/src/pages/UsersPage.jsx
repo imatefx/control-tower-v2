@@ -347,7 +347,7 @@ export default function UsersPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required={!editingUser}
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
                 <div className="space-y-2">
