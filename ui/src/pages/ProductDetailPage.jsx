@@ -244,37 +244,46 @@ export default function ProductDetailPage() {
             <CardDescription>This product is currently in EAP</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <div className="text-sm text-muted-foreground">Start Date</div>
-                <div className="font-medium">
-                  {eap.startDate ? formatDate(eap.startDate) : "Not set"}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">End Date</div>
-                <div className="font-medium">
-                  {eap.endDate ? formatDate(eap.endDate) : "Not set"}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Jira Board</div>
-                {eap.jiraBoardUrl ? (
-                  <a
-                    href={eap.jiraBoardUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-primary hover:underline flex items-center gap-1"
-                  >
-                    Open Board <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <div className="text-muted-foreground">Not configured</div>
-                )}
-              </div>
+            <div className="mb-4">
+              <div className="text-sm text-muted-foreground">Jira Board</div>
+              {eap.jiraBoardUrl ? (
+                <a
+                  href={eap.jiraBoardUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary hover:underline flex items-center gap-1"
+                >
+                  Open Board <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <div className="text-muted-foreground">Not configured</div>
+              )}
             </div>
-            {eap.clientIds && eap.clientIds.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
+            {eap.clients && eap.clients.length > 0 && (
+              <div className="pt-4 border-t">
+                <div className="text-sm text-muted-foreground mb-3">EAP Clients</div>
+                <div className="space-y-3">
+                  {eap.clients.map((client, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-slate-800 border">
+                      <div className="font-medium">{client.clientName || client.clientId}</div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Start: </span>
+                          <span className="font-medium">{client.startDate ? formatDate(client.startDate) : "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">End: </span>
+                          <span className="font-medium">{client.endDate ? formatDate(client.endDate) : "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Backward compatibility for old clientIds format */}
+            {(!eap.clients || eap.clients.length === 0) && eap.clientIds && eap.clientIds.length > 0 && (
+              <div className="pt-4 border-t">
                 <div className="text-sm text-muted-foreground mb-2">EAP Clients</div>
                 <div className="flex flex-wrap gap-2">
                   {eap.clientIds.map((clientId, i) => (

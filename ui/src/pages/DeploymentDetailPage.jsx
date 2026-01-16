@@ -70,8 +70,9 @@ export default function DeploymentDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { canEdit } = useAuth()
-  const [blockedDialog, setBlockedDialog] = useState(false)
-  const [blockedComment, setBlockedComment] = useState("")
+  const [statusChangeDialog, setStatusChangeDialog] = useState(false)
+  const [statusChangeNote, setStatusChangeNote] = useState("")
+  const [pendingStatus, setPendingStatus] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState(false)
 
   const { data: deployment, isLoading } = useQuery({
@@ -147,15 +148,23 @@ export default function DeploymentDetailPage() {
   }
 
   const handleStatusChange = (newStatus) => {
-    if (newStatus === "blocked") {
-      setBlockedDialog(true)
-    } else {
-      updateStatusMutation.mutate({ status: newStatus })
-    }
+    setPendingStatus(newStatus)
+    setStatusChangeNote("")
+    setStatusChangeDialog(true)
   }
 
-  const handleBlockedSubmit = () => {
-    updateStatusMutation.mutate({ status: "blocked", blockedComment })
+  const handleStatusChangeSubmit = () => {
+    const payload = { status: pendingStatus }
+    if (statusChangeNote.trim()) {
+      payload.statusNote = statusChangeNote.trim()
+    }
+    if (pendingStatus === "Blocked") {
+      payload.blockedComment = statusChangeNote.trim()
+    }
+    updateStatusMutation.mutate(payload)
+    setStatusChangeDialog(false)
+    setStatusChangeNote("")
+    setPendingStatus(null)
   }
 
   const handleChecklistToggle = (itemName) => {
@@ -857,39 +866,47 @@ export default function DeploymentDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={blockedDialog} onOpenChange={setBlockedDialog}>
+      <Dialog open={statusChangeDialog} onOpenChange={setStatusChangeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mark as Blocked</DialogTitle>
+            <DialogTitle>Change Status to "{pendingStatus}"</DialogTitle>
             <DialogDescription>
-              Please provide a reason for blocking this deployment
+              {pendingStatus === "Blocked"
+                ? "Please provide a reason for blocking this deployment"
+                : "Add a note for this status change (optional)"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="blockedComment">Reason</Label>
+              <Label htmlFor="statusChangeNote">
+                {pendingStatus === "Blocked" ? "Reason *" : "Note"}
+              </Label>
               <Textarea
-                id="blockedComment"
-                value={blockedComment}
-                onChange={(e) => setBlockedComment(e.target.value)}
-                placeholder="Describe why this deployment is blocked..."
+                id="statusChangeNote"
+                value={statusChangeNote}
+                onChange={(e) => setStatusChangeNote(e.target.value)}
+                placeholder={
+                  pendingStatus === "Blocked"
+                    ? "Describe why this deployment is blocked..."
+                    : "Add any relevant notes about this status change..."
+                }
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBlockedDialog(false)}>
+            <Button variant="outline" onClick={() => setStatusChangeDialog(false)}>
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleBlockedSubmit}
-              disabled={!blockedComment.trim() || updateStatusMutation.isPending}
+              variant={pendingStatus === "Blocked" ? "destructive" : "default"}
+              onClick={handleStatusChangeSubmit}
+              disabled={(pendingStatus === "Blocked" && !statusChangeNote.trim()) || updateStatusMutation.isPending}
             >
               {updateStatusMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Mark as Blocked
+              Change to {pendingStatus}
             </Button>
           </DialogFooter>
         </DialogContent>

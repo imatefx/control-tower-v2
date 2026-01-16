@@ -52,8 +52,9 @@ module.exports = {
       eap: {
         type: DataTypes.JSONB,
         defaultValue: {
-          isActive: false, startDate: null, endDate: null,
-          jiraBoardUrl: null, clientIds: []
+          isActive: false,
+          jiraBoardUrl: null,
+          clients: []  // Array of { clientId, clientName, startDate, endDate }
         }
       },
       isAdapter: { type: DataTypes.BOOLEAN, defaultValue: false },

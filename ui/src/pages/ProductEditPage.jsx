@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { productsAPI } from "@/services/api"
+import { productsAPI, clientsAPI } from "@/services/api"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,8 @@ export default function ProductEditPage() {
     engineeringOwner: "",
     parentId: "",
     isEap: false,
+    eapJiraBoardUrl: "",
+    eapClients: [],  // Array of { clientId, clientName, startDate, endDate }
   })
 
   const { data: product, isLoading } = useQuery({
@@ -42,6 +45,11 @@ export default function ProductEditPage() {
     queryFn: () => productsAPI.list({ type: "main" }),
   })
 
+  const { data: clients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => clientsAPI.list(),
+  })
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -51,6 +59,8 @@ export default function ProductEditPage() {
         engineeringOwner: product.engineeringOwner || "",
         parentId: product.parentId || "",
         isEap: product.eap?.isActive || false,
+        eapJiraBoardUrl: product.eap?.jiraBoardUrl || "",
+        eapClients: product.eap?.clients || [],
       })
     }
   }, [product])
@@ -60,7 +70,11 @@ export default function ProductEditPage() {
       const payload = {
         ...data,
         parentId: data.parentId || null,
-        eap: { isActive: data.isEap },
+        eap: {
+          isActive: data.isEap,
+          jiraBoardUrl: data.eapJiraBoardUrl || null,
+          clients: data.eapClients || [],
+        },
       }
       return productsAPI.update(id, payload)
     },
@@ -74,6 +88,30 @@ export default function ProductEditPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
     updateMutation.mutate(formData)
+  }
+
+  const handleEapClientToggle = (clientId, clientName) => {
+    const exists = formData.eapClients.find(c => c.clientId === clientId)
+    if (exists) {
+      setFormData({
+        ...formData,
+        eapClients: formData.eapClients.filter(c => c.clientId !== clientId)
+      })
+    } else {
+      setFormData({
+        ...formData,
+        eapClients: [...formData.eapClients, { clientId, clientName, startDate: "", endDate: "" }]
+      })
+    }
+  }
+
+  const handleEapClientDateChange = (clientId, field, value) => {
+    setFormData({
+      ...formData,
+      eapClients: formData.eapClients.map(c =>
+        c.clientId === clientId ? { ...c, [field]: value } : c
+      )
+    })
   }
 
   if (isLoading) {
@@ -189,15 +227,82 @@ export default function ProductEditPage() {
               </Select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isEap"
-                checked={formData.isEap}
-                onChange={(e) => setFormData({ ...formData, isEap: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="isEap">Early Access Program (EAP)</Label>
+            {/* EAP Section */}
+            <div className="space-y-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isEap"
+                  checked={formData.isEap}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isEap: checked })}
+                />
+                <Label htmlFor="isEap" className="font-medium">Early Access Program (EAP)</Label>
+              </div>
+
+              {formData.isEap && (
+                <div className="space-y-4 pl-6 border-l-2 border-purple-300">
+                  <div className="space-y-2">
+                    <Label htmlFor="eapJiraBoardUrl">Jira Board URL</Label>
+                    <Input
+                      id="eapJiraBoardUrl"
+                      value={formData.eapJiraBoardUrl}
+                      onChange={(e) => setFormData({ ...formData, eapJiraBoardUrl: e.target.value })}
+                      placeholder="https://jira.example.com/board/..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>EAP Clients</Label>
+                    <p className="text-xs text-muted-foreground">Select clients and set their EAP timeline</p>
+                    <div className="border rounded-lg p-3 max-h-60 overflow-y-auto space-y-3">
+                      {clients?.rows?.map((client) => {
+                        const eapClient = formData.eapClients.find(c => c.clientId === client.id)
+                        const isSelected = !!eapClient
+                        return (
+                          <div key={client.id} className="space-y-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => handleEapClientToggle(client.id, client.name)}
+                              />
+                              <span className="text-sm font-medium">{client.name}</span>
+                            </label>
+                            {isSelected && (
+                              <div className="grid grid-cols-2 gap-2 pl-7">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Start Date</Label>
+                                  <Input
+                                    type="date"
+                                    value={eapClient.startDate || ""}
+                                    onChange={(e) => handleEapClientDateChange(client.id, "startDate", e.target.value)}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">End Date</Label>
+                                  <Input
+                                    type="date"
+                                    value={eapClient.endDate || ""}
+                                    onChange={(e) => handleEapClientDateChange(client.id, "endDate", e.target.value)}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                      {(!clients?.rows || clients.rows.length === 0) && (
+                        <p className="text-sm text-muted-foreground text-center py-2">No clients available</p>
+                      )}
+                    </div>
+                    {formData.eapClients.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.eapClients.length} client(s) selected
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-4">

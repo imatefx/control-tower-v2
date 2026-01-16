@@ -145,13 +145,11 @@ function ProductCard({ product, onEdit, onDelete, canEdit }) {
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {product.eap?.isActive ? (
+          {product.eap?.isActive && (
             <Badge variant="purple" className="text-xs gap-1">
               <FlaskConical className="h-3 w-3" />
               EAP
             </Badge>
-          ) : (
-            <Badge variant="success" className="text-xs">GA</Badge>
           )}
           {product.isAdapter && (
             <Badge variant="warning" className="text-xs gap-1">
@@ -165,8 +163,8 @@ function ProductCard({ product, onEdit, onDelete, canEdit }) {
           {product.adapterServices?.hasEquipmentSE && (
             <Badge variant="outline" className="text-xs">SE</Badge>
           )}
-          {product.parentId && (
-            <Badge variant="secondary" className="text-xs">Sub-product</Badge>
+          {product.parentId && product.parentName && (
+            <Badge variant="secondary" className="text-xs">{product.parentName}</Badge>
           )}
         </div>
 
@@ -695,7 +693,7 @@ export default function ProductsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Delivery Lead</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>EAP / Parent</TableHead>
                   <TableHead>Deployments</TableHead>
                   <TableHead>Sub-products</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -728,8 +726,10 @@ export default function ProductsPage() {
                     <TableCell>
                       {product.eap?.isActive ? (
                         <Badge variant="purple">EAP</Badge>
+                      ) : product.parentName ? (
+                        <Badge variant="secondary">{product.parentName}</Badge>
                       ) : (
-                        <Badge variant="success">GA</Badge>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>{product.deploymentCount || 0}</TableCell>
