@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { productsAPI, clientsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -81,7 +82,11 @@ export default function ProductEditPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
       queryClient.invalidateQueries({ queryKey: ["product", id] })
+      toast.success("Product saved successfully")
       navigate(`/products/${id}`)
+    },
+    onError: () => {
+      toast.error("Failed to save product")
     },
   })
 

@@ -85,6 +85,7 @@ import {
   Minimize2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "@/hooks/useToast"
 import { Gantt, ViewMode } from "gantt-task-react"
 import "gantt-task-react/dist/index.css"
 
@@ -251,14 +252,15 @@ function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
             isOverdue ? "text-rose-600" : isUrgent ? "text-amber-600" : "text-muted-foreground"
           }`}>
             <Calendar className="h-3.5 w-3.5" />
-            <span>
-              {isReleased
+            <span>{formatDate(targetDate)}</span>
+            <span className="text-muted-foreground">
+              ({isReleased
                 ? "Completed"
                 : isOverdue
                   ? `${Math.abs(days)}d overdue`
                   : days === 0
-                    ? "Due today"
-                    : `${days}d remaining`}
+                    ? "Today"
+                    : `${days}d`})
             </span>
             {!isReleased && (isOverdue || isUrgent) && (
               <span className={`w-1.5 h-1.5 rounded-full ${isOverdue ? "bg-rose-500" : "bg-amber-500"} animate-pulse`} />
@@ -367,14 +369,15 @@ function KanbanCard({ deployment, onEdit, onDelete, canEdit }) {
             isOverdue ? "text-rose-600 dark:text-rose-400" : isUrgent ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
           }`}>
             <Calendar className="h-3 w-3" />
-            <span>
-              {isReleased
+            <span>{formatDate(targetDate)}</span>
+            <span className="text-muted-foreground">
+              ({isReleased
                 ? "Completed"
                 : isOverdue
                   ? `${Math.abs(days)}d overdue`
                   : days === 0
-                    ? "Due today"
-                    : `${days}d left`}
+                    ? "Today"
+                    : `${days}d`})
             </span>
             {!isReleased && isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />}
           </div>
@@ -501,6 +504,10 @@ export default function DeploymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
       closeDialog()
+      toast.success("Deployment created successfully")
+    },
+    onError: () => {
+      toast.error("Failed to create deployment")
     },
   })
 
@@ -509,6 +516,10 @@ export default function DeploymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
       closeDialog()
+      toast.success("Deployment updated successfully")
+    },
+    onError: () => {
+      toast.error("Failed to update deployment")
     },
   })
 
@@ -517,6 +528,10 @@ export default function DeploymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
       setDeleteDialog({ open: false, deployment: null })
+      toast.success("Deployment deleted successfully")
+    },
+    onError: () => {
+      toast.error("Failed to delete deployment")
     },
   })
 
@@ -655,9 +670,35 @@ export default function DeploymentsPage() {
 
   const statusOrder = ["Not Started", "In Progress", "Blocked", "Released"]
 
-  const filteredDeployments = statusFilter === "all"
-    ? deployments?.rows
-    : deployments?.rows?.filter(d => d.status === statusFilter)
+  const filteredDeployments = useMemo(() => {
+    if (!deployments?.rows) return []
+
+    if (statusFilter === "all") {
+      return deployments.rows
+    }
+
+    if (statusFilter === "upcoming") {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      return deployments.rows
+        .filter(d => {
+          const targetDate = d.nextDeliveryDate || d.targetDate
+          if (!targetDate) return false
+          if (d.status === "Released") return false
+          const date = new Date(targetDate)
+          date.setHours(0, 0, 0, 0)
+          return date >= today
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.nextDeliveryDate || a.targetDate)
+          const dateB = new Date(b.nextDeliveryDate || b.targetDate)
+          return dateA - dateB // Ascending order
+        })
+    }
+
+    return deployments.rows.filter(d => d.status === statusFilter)
+  }, [deployments?.rows, statusFilter])
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
@@ -1297,6 +1338,7 @@ export default function DeploymentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
                 {statuses.map((status) => (
                   <SelectItem key={status} value={status}>
                     {formatStatus(status)}
@@ -1309,7 +1351,10 @@ export default function DeploymentsPage() {
             <Button
               variant={view === "cards" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("cards")}
+              onClick={() => {
+                setView("cards")
+                toast.info("Switched to card view")
+              }}
               className="gap-2"
             >
               <LayoutGrid className="h-4 w-4" />
@@ -1318,7 +1363,10 @@ export default function DeploymentsPage() {
             <Button
               variant={view === "list" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("list")}
+              onClick={() => {
+                setView("list")
+                toast.info("Switched to list view")
+              }}
               className="gap-2"
             >
               <List className="h-4 w-4" />
@@ -1327,7 +1375,10 @@ export default function DeploymentsPage() {
             <Button
               variant={view === "kanban" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("kanban")}
+              onClick={() => {
+                setView("kanban")
+                toast.info("Switched to kanban view")
+              }}
               className="gap-2"
             >
               <LayoutGrid className="h-4 w-4" />
@@ -1336,7 +1387,10 @@ export default function DeploymentsPage() {
             <Button
               variant={view === "gantt" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("gantt")}
+              onClick={() => {
+                setView("gantt")
+                toast.info("Switched to gantt view")
+              }}
               className="gap-2"
             >
               <GanttChartSquare className="h-4 w-4" />

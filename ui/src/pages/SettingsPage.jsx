@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { configAPI } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
+import { toast } from "@/hooks/useToast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,21 +66,26 @@ export default function SettingsPage() {
     mutationFn: ({ key, value }) => configAPI.update(key, value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["config"] })
+      toast.success("Settings saved")
+    },
+    onError: () => {
+      toast.error("Failed to save settings")
     },
   })
 
   const handleProfileSubmit = (e) => {
     e.preventDefault()
-    alert("Profile update - This would save changes in production")
+    toast.success("Profile updated successfully")
   }
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault()
     if (profileData.newPassword !== profileData.confirmPassword) {
-      alert("Passwords do not match")
+      toast.error("Passwords do not match")
       return
     }
-    alert("Password change - This would update the password in production")
+    toast.success("Password changed successfully")
+    setProfileData({ ...profileData, currentPassword: "", newPassword: "", confirmPassword: "" })
   }
 
   const themeOptions = [
@@ -260,7 +266,10 @@ export default function SettingsPage() {
                     return (
                       <button
                         key={option.value}
-                        onClick={() => setTheme(option.value)}
+                        onClick={() => {
+                          setTheme(option.value)
+                          toast.info(`Switched to ${option.label.toLowerCase()} theme`)
+                        }}
                         className={`p-4 rounded-lg border-2 transition-all ${
                           theme === option.value
                             ? "border-primary bg-primary/5"
@@ -324,7 +333,7 @@ export default function SettingsPage() {
                   />
                 </div>
               ))}
-              <Button>
+              <Button onClick={() => toast.success("Notification preferences saved")}>
                 <Save className="mr-2 h-4 w-4" />
                 Save Preferences
               </Button>

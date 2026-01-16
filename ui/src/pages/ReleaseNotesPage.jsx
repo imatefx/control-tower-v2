@@ -2,6 +2,7 @@ import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { releaseNotesAPI, productsAPI, releaseNoteTemplatesAPI } from "@/services/api"
 import { formatDate } from "@/utils/dateFormat"
+import { toast } from "@/hooks/useToast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -229,6 +230,10 @@ export default function ReleaseNotesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["release-notes"] })
       closeDialog()
+      toast.success("Release note created")
+    },
+    onError: () => {
+      toast.error("Failed to create release note")
     },
   })
 
@@ -237,6 +242,10 @@ export default function ReleaseNotesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["release-notes"] })
       closeDialog()
+      toast.success("Release note updated")
+    },
+    onError: () => {
+      toast.error("Failed to update release note")
     },
   })
 
@@ -245,6 +254,10 @@ export default function ReleaseNotesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["release-notes"] })
       setDeleteDialog({ open: false, release: null })
+      toast.success("Release note deleted")
+    },
+    onError: () => {
+      toast.error("Failed to delete release note")
     },
   })
 
@@ -315,8 +328,10 @@ export default function ReleaseNotesPage() {
       const template = templates?.find(t => t.id === selectedTemplateId) || templates?.[0]
       const product = products?.rows?.find(p => p.id === viewingRelease.productId)
       await exportReleaseNoteToPDF(viewingRelease, template, product, previewRef.current)
+      toast.success("PDF exported successfully")
     } catch (error) {
       console.error("Failed to export PDF:", error)
+      toast.error("Failed to export PDF")
     } finally {
       setIsExporting(false)
     }
@@ -552,14 +567,20 @@ export default function ReleaseNotesPage() {
               <Button
                 variant={view === "cards" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("cards")}
+                onClick={() => {
+                  setView("cards")
+                  toast.info("Switched to card view")
+                }}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
               <Button
                 variant={view === "list" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("list")}
+                onClick={() => {
+                  setView("list")
+                  toast.info("Switched to list view")
+                }}
               >
                 <List className="h-4 w-4" />
               </Button>

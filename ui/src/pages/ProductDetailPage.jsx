@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { productsAPI, deploymentsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -78,7 +79,11 @@ export default function ProductDetailPage() {
     mutationFn: () => productsAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success("Product deleted successfully")
       navigate("/products")
+    },
+    onError: () => {
+      toast.error("Failed to delete product")
     },
   })
 

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { clientsAPI, deploymentsAPI, productsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -72,7 +73,11 @@ export default function ClientDetailPage() {
     mutationFn: () => clientsAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] })
+      toast.success("Client deleted successfully")
       navigate("/clients")
+    },
+    onError: () => {
+      toast.error("Failed to delete client")
     },
   })
 
@@ -82,6 +87,10 @@ export default function ClientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["client", id] })
       setDocDialogOpen(false)
       setDocForm({ title: "", url: "" })
+      toast.success("Document added successfully")
+    },
+    onError: () => {
+      toast.error("Failed to add document")
     },
   })
 
@@ -90,6 +99,10 @@ export default function ClientDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client", id] })
       setDeleteDocDialog({ open: false, doc: null })
+      toast.success("Document removed successfully")
+    },
+    onError: () => {
+      toast.error("Failed to remove document")
     },
   })
 

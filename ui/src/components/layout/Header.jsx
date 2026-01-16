@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/useToast"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +77,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout()
+    toast.info("You have been logged out")
     navigate("/login")
   }
 
@@ -142,7 +144,11 @@ export function Header() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={() => {
+            const newTheme = theme === "dark" ? "light" : "dark"
+            setTheme(newTheme)
+            toast.info(`Switched to ${newTheme} theme`)
+          }}
         >
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>

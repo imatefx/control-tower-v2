@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { productsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -294,6 +295,10 @@ export default function ProductsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
       closeDialog()
+      toast.success("Product created successfully")
+    },
+    onError: () => {
+      toast.error("Failed to create product")
     },
   })
 
@@ -302,6 +307,10 @@ export default function ProductsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
       closeDialog()
+      toast.success("Product updated successfully")
+    },
+    onError: () => {
+      toast.error("Failed to update product")
     },
   })
 
@@ -310,6 +319,10 @@ export default function ProductsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
       setDeleteDialog({ open: false, product: null })
+      toast.success("Product deleted successfully")
+    },
+    onError: () => {
+      toast.error("Failed to delete product")
     },
   })
 
@@ -617,7 +630,10 @@ export default function ProductsPage() {
             <Button
               variant={productFilter === "main" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setProductFilter("main")}
+              onClick={() => {
+                setProductFilter("main")
+                toast.info("Showing main products")
+              }}
               className="gap-1"
             >
               <Package className="h-3.5 w-3.5" />
@@ -627,7 +643,10 @@ export default function ProductsPage() {
             <Button
               variant={productFilter === "sub" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setProductFilter("sub")}
+              onClick={() => {
+                setProductFilter("sub")
+                toast.info("Showing sub-products")
+              }}
               className="gap-1"
             >
               <GitBranch className="h-3.5 w-3.5" />
@@ -637,7 +656,10 @@ export default function ProductsPage() {
             <Button
               variant={productFilter === "all" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setProductFilter("all")}
+              onClick={() => {
+                setProductFilter("all")
+                toast.info("Showing all products")
+              }}
               className="gap-1"
             >
               All
@@ -646,7 +668,10 @@ export default function ProductsPage() {
             <Button
               variant={productFilter === "upcoming" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setProductFilter("upcoming")}
+              onClick={() => {
+                setProductFilter("upcoming")
+                toast.info("Showing upcoming releases")
+              }}
               className="gap-1"
             >
               <Calendar className="h-3.5 w-3.5" />
@@ -659,7 +684,10 @@ export default function ProductsPage() {
           <Button
             variant={view === "cards" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("cards")}
+            onClick={() => {
+              setView("cards")
+              toast.info("Switched to card view")
+            }}
             className="gap-2"
           >
             <LayoutGrid className="h-4 w-4" />
@@ -668,7 +696,10 @@ export default function ProductsPage() {
           <Button
             variant={view === "list" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("list")}
+            onClick={() => {
+              setView("list")
+              toast.info("Switched to list view")
+            }}
             className="gap-2"
           >
             <List className="h-4 w-4" />

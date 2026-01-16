@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { clientsAPI, productsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -165,6 +166,10 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] })
       closeDialog()
+      toast.success("Client created successfully")
+    },
+    onError: () => {
+      toast.error("Failed to create client")
     },
   })
 
@@ -173,6 +178,10 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] })
       closeDialog()
+      toast.success("Client updated successfully")
+    },
+    onError: () => {
+      toast.error("Failed to update client")
     },
   })
 
@@ -181,6 +190,10 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] })
       setDeleteDialog({ open: false, client: null })
+      toast.success("Client deleted successfully")
+    },
+    onError: () => {
+      toast.error("Failed to delete client")
     },
   })
 
@@ -357,7 +370,10 @@ export default function ClientsPage() {
           <Button
             variant={view === "cards" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("cards")}
+            onClick={() => {
+              setView("cards")
+              toast.info("Switched to card view")
+            }}
             className="gap-2"
           >
             <LayoutGrid className="h-4 w-4" />
@@ -366,7 +382,10 @@ export default function ClientsPage() {
           <Button
             variant={view === "list" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("list")}
+            onClick={() => {
+              setView("list")
+              toast.info("Switched to list view")
+            }}
             className="gap-2"
           >
             <List className="h-4 w-4" />

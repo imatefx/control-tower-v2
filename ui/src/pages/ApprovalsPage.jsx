@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { approvalsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -176,6 +177,10 @@ export default function ApprovalsPage() {
     mutationFn: (id) => approvalsAPI.approve(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["approvals"] })
+      toast.success("Request approved successfully")
+    },
+    onError: () => {
+      toast.error("Failed to approve request")
     },
   })
 
@@ -185,6 +190,10 @@ export default function ApprovalsPage() {
       queryClient.invalidateQueries({ queryKey: ["approvals"] })
       setRejectDialog(null)
       setRejectComment("")
+      toast.success("Request rejected")
+    },
+    onError: () => {
+      toast.error("Failed to reject request")
     },
   })
 
@@ -291,7 +300,10 @@ export default function ApprovalsPage() {
           <Button
             variant={view === "cards" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("cards")}
+            onClick={() => {
+              setView("cards")
+              toast.info("Switched to card view")
+            }}
             className="gap-2"
           >
             <LayoutGrid className="h-4 w-4" />
@@ -300,7 +312,10 @@ export default function ApprovalsPage() {
           <Button
             variant={view === "list" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setView("list")}
+            onClick={() => {
+              setView("list")
+              toast.info("Switched to list view")
+            }}
             className="gap-2"
           >
             <List className="h-4 w-4" />

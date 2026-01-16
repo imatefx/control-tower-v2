@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { usersAPI } from "@/services/api"
 import { formatDate } from "@/utils/dateFormat"
+import { toast } from "@/hooks/useToast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -235,6 +236,10 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
       closeDialog()
+      toast.success("User created successfully")
+    },
+    onError: () => {
+      toast.error("Failed to create user")
     },
   })
 
@@ -243,6 +248,10 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
       closeDialog()
+      toast.success("User updated successfully")
+    },
+    onError: () => {
+      toast.error("Failed to update user")
     },
   })
 
@@ -250,6 +259,10 @@ export default function UsersPage() {
     mutationFn: usersAPI.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
+      toast.success("User deleted successfully")
+    },
+    onError: () => {
+      toast.error("Failed to delete user")
     },
   })
 
@@ -400,14 +413,20 @@ export default function UsersPage() {
               <Button
                 variant={view === "cards" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("cards")}
+                onClick={() => {
+                  setView("cards")
+                  toast.info("Switched to card view")
+                }}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
               <Button
                 variant={view === "list" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("list")}
+                onClick={() => {
+                  setView("list")
+                  toast.info("Switched to list view")
+                }}
               >
                 <List className="h-4 w-4" />
               </Button>

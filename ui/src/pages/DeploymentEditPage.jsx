@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { ArrowLeft, Rocket, Loader2, Save, Calendar, User } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "@/hooks/useToast"
 
 const environments = ["production", "sandbox", "qa"]
 const statuses = ["Not Started", "In Progress", "Blocked", "Released"]
@@ -95,7 +96,11 @@ export default function DeploymentEditPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
       queryClient.invalidateQueries({ queryKey: ["deployment", id] })
+      toast.success("Deployment saved successfully")
       navigate(`/deployments/${id}`)
+    },
+    onError: () => {
+      toast.error("Failed to save deployment")
     },
   })
 

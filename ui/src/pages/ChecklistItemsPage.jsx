@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { checklistTemplatesAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -164,6 +165,10 @@ export default function ChecklistItemsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates"] })
       closeDialog()
+      toast.success("Checklist item created")
+    },
+    onError: () => {
+      toast.error("Failed to create checklist item")
     },
   })
 
@@ -172,6 +177,10 @@ export default function ChecklistItemsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates"] })
       closeDialog()
+      toast.success("Checklist item updated")
+    },
+    onError: () => {
+      toast.error("Failed to update checklist item")
     },
   })
 
@@ -180,6 +189,10 @@ export default function ChecklistItemsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates"] })
       setDeleteDialog({ open: false, item: null })
+      toast.success("Checklist item deleted")
+    },
+    onError: () => {
+      toast.error("Failed to delete checklist item")
     },
   })
 
@@ -187,6 +200,10 @@ export default function ChecklistItemsPage() {
     mutationFn: checklistTemplatesAPI.seedDefaults,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates"] })
+      toast.success("Default items loaded")
+    },
+    onError: () => {
+      toast.error("Failed to load default items")
     },
   })
 
@@ -422,14 +439,20 @@ export default function ChecklistItemsPage() {
               <Button
                 variant={view === "cards" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("cards")}
+                onClick={() => {
+                  setView("cards")
+                  toast.info("Switched to card view")
+                }}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
               <Button
                 variant={view === "list" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setView("list")}
+                onClick={() => {
+                  setView("list")
+                  toast.info("Switched to list view")
+                }}
               >
                 <List className="h-4 w-4" />
               </Button>

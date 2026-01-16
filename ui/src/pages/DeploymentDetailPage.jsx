@@ -64,6 +64,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "@/hooks/useToast"
 
 export default function DeploymentDetailPage() {
   const { id } = useParams()
@@ -120,10 +121,14 @@ export default function DeploymentDetailPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ status, blockedComment }) =>
       deploymentsAPI.updateStatus(id, status, blockedComment),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["deployment", id] })
       setBlockedDialog(false)
       setBlockedComment("")
+      toast.success(`Status updated to ${variables.status}`)
+    },
+    onError: () => {
+      toast.error("Failed to update status")
     },
   })
 
@@ -132,6 +137,10 @@ export default function DeploymentDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist", id] })
       queryClient.invalidateQueries({ queryKey: ["deployment", id] })
+      toast.success("Checklist item updated")
+    },
+    onError: () => {
+      toast.error("Failed to update checklist")
     },
   })
 
@@ -139,7 +148,11 @@ export default function DeploymentDetailPage() {
     mutationFn: () => deploymentsAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
+      toast.success("Deployment deleted successfully")
       navigate("/deployments")
+    },
+    onError: () => {
+      toast.error("Failed to delete deployment")
     },
   })
 

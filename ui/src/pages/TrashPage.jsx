@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { productsAPI, clientsAPI, deploymentsAPI } from "@/services/api"
+import { toast } from "@/hooks/useToast"
 import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -64,6 +65,10 @@ export default function TrashPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
       setRestoreDialog(null)
+      toast.success("Product restored successfully")
+    },
+    onError: () => {
+      toast.error("Failed to restore product")
     },
   })
 
@@ -72,6 +77,10 @@ export default function TrashPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] })
       setRestoreDialog(null)
+      toast.success("Client restored successfully")
+    },
+    onError: () => {
+      toast.error("Failed to restore client")
     },
   })
 
@@ -80,6 +89,10 @@ export default function TrashPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deployments"] })
       setRestoreDialog(null)
+      toast.success("Deployment restored successfully")
+    },
+    onError: () => {
+      toast.error("Failed to restore deployment")
     },
   })
 

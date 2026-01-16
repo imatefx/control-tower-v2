@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
+import { toast } from "@/hooks/useToast"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -22,9 +23,12 @@ export default function LoginPage() {
 
     try {
       await login(email, password)
+      toast.success("Welcome back!")
       navigate("/dashboard")
     } catch (err) {
-      setError(err.message || "Invalid email or password")
+      const errorMessage = err.message || "Invalid email or password"
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
