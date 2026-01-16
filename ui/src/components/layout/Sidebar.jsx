@@ -72,20 +72,15 @@ export function Sidebar() {
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Logo Header */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-slate-800">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-              <Rocket className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <span className="font-bold text-sm">CDG</span>
-              <span className="text-slate-400 text-sm ml-1">Control Tower</span>
-            </div>
-          </div>
-        )}
-        {collapsed && (
-          <div className="mx-auto p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+      <div className="flex h-16 items-center justify-center px-3 border-b border-slate-800">
+        {!collapsed ? (
+          <img
+            src="/logo.png"
+            alt="CDG Elements"
+            className="h-8 object-contain"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center">
             <Rocket className="h-5 w-5 text-white" />
           </div>
         )}

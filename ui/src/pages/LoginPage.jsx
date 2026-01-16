@@ -37,11 +37,20 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">🚀 CDG Control Tower</CardTitle>
-          <CardDescription>
-            Enter your credentials to access the dashboard
-          </CardDescription>
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <img
+              src="/logo.png"
+              alt="CDG Elements"
+              className="h-12 object-contain"
+            />
+          </div>
+          <div>
+            <CardTitle className="text-xl font-bold">Control Tower</CardTitle>
+            <CardDescription>
+              Enter your credentials to access the dashboard
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
