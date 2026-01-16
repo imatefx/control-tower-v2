@@ -8,7 +8,7 @@ module.exports = {
   mixins: [DbMixin("release_notes")],
 
   settings: {
-    fields: ["id", "productId", "version", "releaseDate", "title", "summary", "items", "createdAt", "updatedAt"],
+    fields: ["id", "productId", "templateId", "version", "releaseDate", "title", "summary", "items", "createdAt", "updatedAt"],
     entityValidator: {
       productId: { type: "uuid" },
       version: { type: "string" }
@@ -20,6 +20,7 @@ module.exports = {
     define: {
       id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
       productId: { type: DataTypes.UUID, allowNull: false },
+      templateId: { type: DataTypes.UUID },
       version: { type: DataTypes.STRING(50), allowNull: false },
       releaseDate: { type: DataTypes.DATEONLY },
       title: { type: DataTypes.STRING(200) },
@@ -31,6 +32,13 @@ module.exports = {
       }
     },
     options: { timestamps: true, paranoid: true, underscored: true }
+  },
+
+  async started() {
+    // Sync model to add any new columns
+    if (this.adapter && this.adapter.model) {
+      await this.adapter.model.sync({ alter: true });
+    }
   },
 
   actions: {
@@ -76,6 +84,38 @@ module.exports = {
 
         const items = (note.items || []).filter(i => i.id !== ctx.params.itemId);
         return this.adapter.updateById(ctx.params.id, { items });
+      }
+    },
+
+    getForExport: {
+      params: {
+        id: "string",
+        templateId: { type: "string", optional: true }
+      },
+      async handler(ctx) {
+        const note = await this.adapter.findById(ctx.params.id);
+        if (!note) throw new Error("Release note not found");
+
+        // Get template - use provided templateId, note's templateId, or default to 'standard'
+        const templateIdToUse = ctx.params.templateId || note.templateId;
+        let template;
+
+        if (templateIdToUse) {
+          template = await ctx.call("releaseNoteTemplates.get", { id: templateIdToUse });
+        }
+
+        if (!template) {
+          template = await ctx.call("releaseNoteTemplates.getByKey", { key: "standard" });
+        }
+
+        // Get product info
+        const product = await ctx.call("products.get", { id: note.productId });
+
+        return {
+          releaseNote: note,
+          template: template,
+          product: product
+        };
       }
     }
   }

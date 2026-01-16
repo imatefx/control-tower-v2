@@ -109,11 +109,19 @@ export const checklistTemplatesAPI = {
   seedDefaults: () => api.post('/checklist-templates/seed'),
 }
 
+// Release Note Templates
+export const releaseNoteTemplatesAPI = {
+  list: (params) => api.get('/release-note-templates', { params }),
+  getActive: () => api.get('/release-note-templates/active'),
+  get: (id) => api.get(`/release-note-templates/${id}`),
+}
+
 // Release Notes
 export const releaseNotesAPI = {
   list: (params) => api.get('/release-notes', { params }),
   get: (id) => api.get(`/release-notes/${id}`),
   getByProduct: (productId) => api.get(`/release-notes/product/${productId}`),
+  getForExport: (id, templateId) => api.get(`/release-notes/${id}/export`, { params: { templateId } }),
   create: (data) => api.post('/release-notes', data),
   update: (id, data) => api.put(`/release-notes/${id}`, data),
   delete: (id) => api.delete(`/release-notes/${id}`),

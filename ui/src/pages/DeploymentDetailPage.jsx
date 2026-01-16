@@ -477,13 +477,13 @@ export default function DeploymentDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
-                  <span className="text-sm font-semibold text-emerald-600">
+                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     {completedItems}/{checklistItems.length} ({progressPercent}%)
                   </span>
                 </div>
@@ -494,8 +494,8 @@ export default function DeploymentDetailPage() {
                       key={item.key}
                       className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         checklist?.[item.key]
-                          ? "bg-emerald-50 border-emerald-200"
-                          : "bg-white border-slate-200 hover:border-slate-300"
+                          ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800"
+                          : "bg-background border-border hover:border-muted-foreground/30"
                       }`}
                     >
                       <Checkbox
@@ -535,13 +535,13 @@ export default function DeploymentDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-slate-50">
+                  <div className="p-3 rounded-lg bg-muted">
                     <Label className="text-xs text-muted-foreground">Created</Label>
                     <p className="font-medium">
                       {new Date(deployment.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-50">
+                  <div className="p-3 rounded-lg bg-muted">
                     <Label className="text-xs text-muted-foreground">Last Updated</Label>
                     <p className="font-medium">
                       {new Date(deployment.updatedAt).toLocaleDateString()}
@@ -550,12 +550,12 @@ export default function DeploymentDetailPage() {
                 </div>
 
                 {deployment.releaseItems && (
-                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                    <Label className="text-xs text-blue-600 flex items-center gap-2">
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800">
+                    <Label className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
                       <Tag className="h-3 w-3" />
                       Release Items / Scope
                     </Label>
-                    <p className="text-sm mt-1 text-blue-900">{deployment.releaseItems}</p>
+                    <p className="text-sm mt-1 text-blue-900 dark:text-blue-100">{deployment.releaseItems}</p>
                   </div>
                 )}
 
@@ -572,12 +572,12 @@ export default function DeploymentDetailPage() {
                           try {
                             notesArray = JSON.parse(notesArray)
                           } catch {
-                            return <p className="text-sm bg-slate-50 p-3 rounded-lg border">{deployment.notes}</p>
+                            return <p className="text-sm bg-muted p-3 rounded-lg border">{deployment.notes}</p>
                           }
                         }
                         if (Array.isArray(notesArray)) {
                           return notesArray.map((note, idx) => (
-                            <div key={note.id || idx} className="text-sm bg-slate-50 p-3 rounded-lg border">
+                            <div key={note.id || idx} className="text-sm bg-muted p-3 rounded-lg border">
                               <p>{note.text}</p>
                               <div className="text-xs text-muted-foreground mt-1">
                                 {note.author} • {new Date(note.timestamp).toLocaleDateString()}
@@ -585,7 +585,7 @@ export default function DeploymentDetailPage() {
                             </div>
                           ))
                         }
-                        return <p className="text-sm bg-slate-50 p-3 rounded-lg border">{String(deployment.notes)}</p>
+                        return <p className="text-sm bg-muted p-3 rounded-lg border">{String(deployment.notes)}</p>
                       })()}
                     </div>
                   </div>
@@ -663,11 +663,11 @@ export default function DeploymentDetailPage() {
                 {/* Runbook */}
                 <div className={`p-4 rounded-lg border-2 ${
                   deployment.documentation?.runbook
-                    ? "bg-blue-50 border-blue-200"
-                    : "bg-slate-50 border-slate-200"
+                    ? "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
+                    : "bg-muted border-border"
                 }`}>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-lg ${deployment.documentation?.runbook ? "bg-blue-500" : "bg-slate-400"}`}>
+                    <div className={`p-2 rounded-lg ${deployment.documentation?.runbook ? "bg-blue-500" : "bg-muted-foreground/50"}`}>
                       <FileText className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-medium">Runbook</span>
@@ -677,24 +677,24 @@ export default function DeploymentDetailPage() {
                       href={deployment.documentation.runbook}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View Document
                     </a>
                   ) : (
-                    <p className="text-sm text-slate-400">Not uploaded</p>
+                    <p className="text-sm text-muted-foreground">Not uploaded</p>
                   )}
                 </div>
 
                 {/* Release Notes */}
                 <div className={`p-4 rounded-lg border-2 ${
                   deployment.documentation?.releaseNotesLink
-                    ? "bg-emerald-50 border-emerald-200"
-                    : "bg-slate-50 border-slate-200"
+                    ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800"
+                    : "bg-muted border-border"
                 }`}>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-lg ${deployment.documentation?.releaseNotesLink ? "bg-emerald-500" : "bg-slate-400"}`}>
+                    <div className={`p-2 rounded-lg ${deployment.documentation?.releaseNotesLink ? "bg-emerald-500" : "bg-muted-foreground/50"}`}>
                       <FileText className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-medium">Release Notes</span>
@@ -704,24 +704,24 @@ export default function DeploymentDetailPage() {
                       href={deployment.documentation.releaseNotesLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View Document
                     </a>
                   ) : (
-                    <p className="text-sm text-slate-400">Not uploaded</p>
+                    <p className="text-sm text-muted-foreground">Not uploaded</p>
                   )}
                 </div>
 
                 {/* QA Report */}
                 <div className={`p-4 rounded-lg border-2 ${
                   deployment.documentation?.qaReport
-                    ? "bg-purple-50 border-purple-200"
-                    : "bg-slate-50 border-slate-200"
+                    ? "bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800"
+                    : "bg-muted border-border"
                 }`}>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-lg ${deployment.documentation?.qaReport ? "bg-purple-500" : "bg-slate-400"}`}>
+                    <div className={`p-2 rounded-lg ${deployment.documentation?.qaReport ? "bg-purple-500" : "bg-muted-foreground/50"}`}>
                       <FileText className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-medium">QA Report</span>
@@ -731,13 +731,13 @@ export default function DeploymentDetailPage() {
                       href={deployment.documentation.qaReport}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                      className="text-sm text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View Document
                     </a>
                   ) : (
-                    <p className="text-sm text-slate-400">Not uploaded</p>
+                    <p className="text-sm text-muted-foreground">Not uploaded</p>
                   )}
                 </div>
               </div>
@@ -756,10 +756,10 @@ export default function DeploymentDetailPage() {
                         href={docUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors text-sm"
+                        className="flex items-center gap-2 p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm"
                       >
-                        <ExternalLink className="h-4 w-4 text-blue-500" />
-                        <span className="text-blue-600 truncate">{docUrl}</span>
+                        <ExternalLink className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                        <span className="text-blue-600 dark:text-blue-400 truncate">{docUrl}</span>
                       </a>
                     ))}
                   </div>
@@ -784,25 +784,25 @@ export default function DeploymentDetailPage() {
             <CardContent>
               {deployment.statusHistory && deployment.statusHistory.length > 0 ? (
                 <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200" />
+                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
                   <div className="space-y-4">
                     {deployment.statusHistory.slice().reverse().map((entry, idx) => {
                       const toStatusConfig = statusColors[entry.toStatus] || "secondary"
                       return (
                         <div key={entry.id || idx} className="relative pl-10">
-                          <div className="absolute left-2.5 w-3 h-3 rounded-full bg-white border-2 border-blue-500" />
-                          <div className="bg-slate-50 rounded-lg p-3 border">
+                          <div className="absolute left-2.5 w-3 h-3 rounded-full bg-background border-2 border-blue-500" />
+                          <div className="bg-muted rounded-lg p-3 border">
                             <div className="flex items-center gap-2 mb-1">
                               <Badge variant={statusColors[entry.fromStatus] || "secondary"} className="text-xs">
                                 {entry.fromStatus}
                               </Badge>
-                              <span className="text-slate-400">→</span>
+                              <span className="text-muted-foreground">→</span>
                               <Badge variant={toStatusConfig} className="text-xs">
                                 {entry.toStatus}
                               </Badge>
                             </div>
-                            <p className="text-sm text-slate-600">{entry.text}</p>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-sm text-muted-foreground">{entry.text}</p>
+                            <p className="text-xs text-muted-foreground/70 mt-1">
                               {entry.author} • {new Date(entry.timestamp).toLocaleString()}
                             </p>
                           </div>

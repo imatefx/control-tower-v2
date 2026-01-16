@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Users, Rocket, Package, ExternalLink, Loader2, Mail, MapPin, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Users, Rocket, Package, ExternalLink, Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle, Building2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function ClientDetailPage() {
@@ -76,16 +76,30 @@ export default function ClientDetailPage() {
 
   const statusColors = {
     not_started: "secondary",
+    "Not Started": "secondary",
     in_progress: "info",
+    "In Progress": "info",
     blocked: "destructive",
+    "Blocked": "destructive",
     completed: "success",
+    "Released": "success",
   }
 
-  const tierColors = {
-    enterprise: "default",
-    business: "secondary",
-    starter: "outline",
-  }
+  // Calculate deployment metrics
+  const deploymentRows = deployments?.rows || []
+  const totalDeployments = deploymentRows.length
+  const completedDeployments = deploymentRows.filter(d =>
+    d.status === "Released" || d.status === "completed"
+  ).length
+  const inProgressDeployments = deploymentRows.filter(d =>
+    d.status === "In Progress" || d.status === "in_progress"
+  ).length
+  const blockedDeployments = deploymentRows.filter(d =>
+    d.status === "Blocked" || d.status === "blocked"
+  ).length
+
+  // Get unique products
+  const uniqueProducts = [...new Set(deploymentRows.map(d => d.productId))].length
 
   return (
     <div className="space-y-6">
@@ -96,13 +110,12 @@ export default function ClientDetailPage() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Users className="h-8 w-8" />
-            {client.name}
-          </h1>
-          <p className="text-muted-foreground">
-            <code className="bg-muted px-1 py-0.5 rounded text-sm">{client.code}</code>
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+              <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-300" />
+            </div>
+            <h1 className="text-3xl font-bold">{client.name}</h1>
+          </div>
         </div>
         {canEdit() && (
           <div className="flex items-center gap-2">
@@ -118,50 +131,54 @@ export default function ClientDetailPage() {
         )}
       </div>
 
+      {/* Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-100 dark:border-blue-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tier</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={tierColors[client.tier]}>
-              {client.tier?.charAt(0).toUpperCase() + client.tier?.slice(1)}
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> Region
+            <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Products
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{client.region || "N/A"}</div>
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{uniqueProducts}</div>
+            <p className="text-xs text-blue-600 dark:text-blue-400">unique products deployed</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border-emerald-100 dark:border-emerald-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deployments?.total || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <Mail className="h-3 w-3" /> Contact
+            <CardTitle className="text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Completed
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {client.contactName ? (
-              <div className="text-sm">
-                <div className="font-medium">{client.contactName}</div>
-                <div className="text-muted-foreground">{client.contactEmail}</div>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">No contact set</span>
-            )}
+            <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{completedDeployments}</div>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">deployments released</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-100 dark:border-amber-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              In Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">{inProgressDeployments}</div>
+            <p className="text-xs text-amber-600 dark:text-amber-400">active deployments</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/50 dark:to-red-950/50 border-rose-100 dark:border-rose-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Blocked
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-rose-900 dark:text-rose-100">{blockedDeployments}</div>
+            <p className="text-xs text-rose-600 dark:text-rose-400">needs attention</p>
           </CardContent>
         </Card>
       </div>

@@ -40,13 +40,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Plus,
@@ -60,39 +53,22 @@ import {
   LayoutGrid,
   List,
   Rocket,
-  Globe,
-  Mail,
   Building2,
-  Star,
-  Crown,
-  Sparkles,
+  Package,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
-const regions = ["NA", "EU", "APAC", "LATAM", "MEA"]
-const tiers = ["enterprise", "business", "starter"]
-
-// Client Card Component
+// Client Card Component - Simplified to show only essential details
 function ClientCard({ client, onEdit, onDelete, canEdit }) {
-  const tierConfig = {
-    enterprise: { color: "bg-gradient-to-r from-amber-500 to-orange-500", icon: Crown, badgeVariant: "default" },
-    business: { color: "bg-gradient-to-r from-blue-500 to-indigo-500", icon: Star, badgeVariant: "secondary" },
-    starter: { color: "bg-gradient-to-r from-slate-400 to-slate-500", icon: Sparkles, badgeVariant: "outline" },
-  }
-
-  const tier = client.tier || "business"
-  const config = tierConfig[tier] || tierConfig.business
-  const TierIcon = config.icon
-
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
-      <div className={`h-1.5 ${config.color}`} />
+      <div className="h-1.5 bg-gradient-to-r from-purple-500 to-pink-500" />
       <CardContent className="pt-4">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-4">
           <Link to={`/clients/${client.id}`} className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 rounded-lg bg-purple-100">
-                <Building2 className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-300" />
               </div>
               <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1">
                 {client.name}
@@ -127,67 +103,28 @@ function ClientCard({ client, onEdit, onDelete, canEdit }) {
           )}
         </div>
 
-        {/* Code Badge */}
-        {client.code && (
-          <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono mb-3 inline-block">
-            {client.code}
-          </code>
-        )}
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          <Badge variant={config.badgeVariant} className="text-xs gap-1">
-            <TierIcon className="h-3 w-3" />
-            {tier.charAt(0).toUpperCase() + tier.slice(1)}
-          </Badge>
-          {client.region && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <Globe className="h-3 w-3" />
-              {client.region}
-            </Badge>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-            <div className="flex items-center gap-1.5 text-xs text-blue-600">
-              <Rocket className="h-3 w-3" />
-              Deployments
-            </div>
-            <p className="font-semibold text-lg text-blue-900 dark:text-blue-100">{client.deploymentCount || 0}</p>
-          </div>
-          <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Users className="h-3 w-3" />
+        {/* Stats - Only Products and Deployments */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/50">
+            <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 mb-1">
+              <Package className="h-3.5 w-3.5" />
               Products
             </div>
-            <p className="font-semibold text-lg">{client.productCount || 0}</p>
+            <p className="font-bold text-2xl text-blue-900 dark:text-blue-100">{client.productCount || 0}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/50">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 mb-1">
+              <Rocket className="h-3.5 w-3.5" />
+              Deployments
+            </div>
+            <p className="font-bold text-2xl text-emerald-900 dark:text-emerald-100">{client.deploymentCount || 0}</p>
           </div>
         </div>
-
-        {/* Contact Info */}
-        {(client.contactName || client.contactEmail) && (
-          <div className="pt-3 border-t space-y-1.5">
-            {client.contactName && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" />
-                <span>{client.contactName}</span>
-              </div>
-            )}
-            {client.contactEmail && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Mail className="h-3 w-3" />
-                <span className="truncate">{client.contactEmail}</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* View Details Link */}
         <Link
           to={`/clients/${client.id}`}
-          className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+          className="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
         >
           View Details
           <ExternalLink className="h-3.5 w-3.5" />
@@ -205,11 +142,6 @@ export default function ClientsPage() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, client: null })
   const [formData, setFormData] = useState({
     name: "",
-    code: "",
-    region: "",
-    tier: "business",
-    contactEmail: "",
-    contactName: "",
     comments: "",
   })
   const queryClient = useQueryClient()
@@ -247,11 +179,6 @@ export default function ClientsPage() {
   const resetForm = () => {
     setFormData({
       name: "",
-      code: "",
-      region: "",
-      tier: "business",
-      contactEmail: "",
-      contactName: "",
       comments: "",
     })
   }
@@ -266,11 +193,6 @@ export default function ClientsPage() {
     setEditingClient(client)
     setFormData({
       name: client.name || "",
-      code: client.code || "",
-      region: client.region || "",
-      tier: client.tier || "business",
-      contactEmail: client.contactEmail || "",
-      contactName: client.contactName || "",
       comments: client.comments || "",
     })
     setDialogOpen(true)
@@ -295,12 +217,6 @@ export default function ClientsPage() {
     if (deleteDialog.client) {
       deleteMutation.mutate(deleteDialog.client.id)
     }
-  }
-
-  const tierColors = {
-    enterprise: "default",
-    business: "secondary",
-    starter: "outline",
   }
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
@@ -334,90 +250,23 @@ export default function ClientsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Name *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="code">Code</Label>
-                      <Input
-                        id="code"
-                        value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                        placeholder="e.g., ACME"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="region">Region</Label>
-                      <Select
-                        value={formData.region || "none"}
-                        onValueChange={(value) => setFormData({ ...formData, region: value === "none" ? "" : value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select region" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {regions.map((region) => (
-                            <SelectItem key={region} value={region}>
-                              {region}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tier">Tier</Label>
-                      <Select
-                        value={formData.tier}
-                        onValueChange={(value) => setFormData({ ...formData, tier: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tiers.map((tier) => (
-                            <SelectItem key={tier} value={tier}>
-                              {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="contactName">Contact Name</Label>
-                      <Input
-                        id="contactName"
-                        value={formData.contactName}
-                        onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contactEmail">Contact Email</Label>
-                      <Input
-                        id="contactEmail"
-                        type="email"
-                        value={formData.contactEmail}
-                        onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter client name"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="comments">Comments</Label>
+                    <Label htmlFor="comments">Notes</Label>
                     <Textarea
                       id="comments"
                       value={formData.comments}
                       onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                      placeholder="Optional notes about this client"
                       rows={3}
                     />
                   </div>
@@ -502,11 +351,8 @@ export default function ClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Tier</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Deployments</TableHead>
+                  <TableHead className="text-center">Products</TableHead>
+                  <TableHead className="text-center">Deployments</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -515,36 +361,22 @@ export default function ClientsPage() {
                   <TableRow key={client.id}>
                     <TableCell>
                       <Link to={`/clients/${client.id}`} className="flex items-center gap-2 hover:text-primary">
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{client.name}</span>
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      {client.code ? (
-                        <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                          {client.code}
-                        </code>
-                      ) : "-"}
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="gap-1">
+                        <Package className="h-3 w-3" />
+                        {client.productCount || 0}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{client.region || "-"}</TableCell>
-                    <TableCell>
-                      {client.tier ? (
-                        <Badge variant={tierColors[client.tier]}>
-                          {client.tier.charAt(0).toUpperCase() + client.tier.slice(1)}
-                        </Badge>
-                      ) : "-"}
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="gap-1">
+                        <Rocket className="h-3 w-3" />
+                        {client.deploymentCount || 0}
+                      </Badge>
                     </TableCell>
-                    <TableCell>
-                      {client.contactName ? (
-                        <div className="text-sm">
-                          <div>{client.contactName}</div>
-                          <div className="text-muted-foreground">{client.contactEmail}</div>
-                        </div>
-                      ) : (
-                        "-"
-                      )}
-                    </TableCell>
-                    <TableCell>{client.deploymentCount || 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
@@ -580,7 +412,7 @@ export default function ClientsPage() {
                 ))}
                 {(!clients?.rows || clients.rows.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No clients found
                     </TableCell>
                   </TableRow>

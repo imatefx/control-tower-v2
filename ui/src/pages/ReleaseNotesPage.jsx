@@ -1,12 +1,12 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { releaseNotesAPI, productsAPI } from "@/services/api"
+import { releaseNotesAPI, productsAPI, releaseNoteTemplatesAPI } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -38,6 +38,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -47,12 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 import {
   Plus,
   FileText,
@@ -71,9 +66,15 @@ import {
   Zap,
   AlertTriangle,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  Download,
+  FileDown,
+  Layout
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import ReleaseNotePreview from "@/components/ReleaseNotePreview"
+import { exportReleaseNoteToPDF } from "@/lib/pdfExport"
 
 const itemTypes = [
   { value: "feature", label: "Feature", color: "success", icon: Sparkles, gradient: "from-emerald-500 to-green-500", bgLight: "bg-emerald-50", textColor: "text-emerald-700" },
@@ -83,10 +84,9 @@ const itemTypes = [
   { value: "deprecation", label: "Deprecation", color: "secondary", icon: Clock, gradient: "from-slate-400 to-slate-500", bgLight: "bg-slate-50", textColor: "text-slate-700" },
 ]
 
-function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
+function ReleaseCard({ release, products, onView, onEdit, onDelete, canEdit }) {
   const productName = release.product?.name || products?.rows?.find(p => p.id === release.productId)?.name || "Unknown Product"
 
-  // Get the most impactful item type for the card color
   const getGradient = () => {
     if (!release.items || release.items.length === 0) return "from-slate-400 to-slate-500"
     if (release.items.some(i => i.type === "breaking")) return "from-amber-500 to-orange-500"
@@ -96,7 +96,6 @@ function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
     return "from-slate-400 to-slate-500"
   }
 
-  // Count items by type
   const itemCounts = itemTypes.reduce((acc, type) => {
     acc[type.value] = release.items?.filter(i => i.type === type.value).length || 0
     return acc
@@ -107,10 +106,7 @@ function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
       <div className={`h-1.5 bg-gradient-to-r ${getGradient()}`} />
       <CardContent className="pt-4">
         <div className="flex items-start justify-between mb-3">
-          <button
-            onClick={() => onEdit(release)}
-            className="flex-1 text-left"
-          >
+          <button onClick={() => onView(release)} className="flex-1 text-left">
             <div className="flex items-center gap-2 mb-1">
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{productName}</span>
@@ -119,32 +115,36 @@ function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
               v{release.version}
             </h3>
           </button>
-          {canEdit && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(release)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDelete(release)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onView(release)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View
+              </DropdownMenuItem>
+              {canEdit && (
+                <>
+                  <DropdownMenuItem onClick={() => onEdit(release)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => onDelete(release)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
@@ -153,12 +153,9 @@ function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
         </div>
 
         {release.summary && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {release.summary}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{release.summary}</p>
         )}
 
-        {/* Item type badges */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {itemTypes.map(type => {
             const count = itemCounts[type.value]
@@ -177,7 +174,7 @@ function ReleaseCard({ release, products, onEdit, onDelete, canEdit }) {
         </div>
 
         <button
-          onClick={() => onEdit(release)}
+          onClick={() => onView(release)}
           className="w-full text-center text-sm text-primary hover:underline font-medium flex items-center justify-center gap-1"
         >
           View Details
@@ -193,15 +190,21 @@ export default function ReleaseNotesPage() {
   const [view, setView] = useState("cards")
   const [productFilter, setProductFilter] = useState("all")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingRelease, setViewingRelease] = useState(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [editingRelease, setEditingRelease] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, release: null })
+  const [isExporting, setIsExporting] = useState(false)
   const [formData, setFormData] = useState({
     productId: "",
+    templateId: "",
     version: "",
     releaseDate: new Date().toISOString().split("T")[0],
     summary: "",
     items: [{ type: "feature", title: "", description: "" }],
   })
+  const previewRef = useRef(null)
   const queryClient = useQueryClient()
   const { canEdit } = useAuth()
 
@@ -213,6 +216,11 @@ export default function ReleaseNotesPage() {
   const { data: products } = useQuery({
     queryKey: ["products-all"],
     queryFn: () => productsAPI.list({ pageSize: 100 }),
+  })
+
+  const { data: templates } = useQuery({
+    queryKey: ["release-note-templates"],
+    queryFn: () => releaseNoteTemplatesAPI.getActive(),
   })
 
   const createMutation = useMutation({
@@ -242,6 +250,7 @@ export default function ReleaseNotesPage() {
   const resetForm = () => {
     setFormData({
       productId: "",
+      templateId: "",
       version: "",
       releaseDate: new Date().toISOString().split("T")[0],
       summary: "",
@@ -259,6 +268,7 @@ export default function ReleaseNotesPage() {
     setEditingRelease(release)
     setFormData({
       productId: release.productId || "",
+      templateId: release.templateId || "",
       version: release.version || "",
       releaseDate: release.releaseDate ? new Date(release.releaseDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       summary: release.summary || "",
@@ -273,6 +283,14 @@ export default function ReleaseNotesPage() {
     setDialogOpen(true)
   }
 
+  const openViewDialog = (release) => {
+    setViewingRelease(release)
+    // Set default template - use release's template or first available
+    const defaultTemplate = release.templateId || (templates && templates.length > 0 ? templates[0].id : "")
+    setSelectedTemplateId(defaultTemplate)
+    setViewDialogOpen(true)
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (editingRelease) {
@@ -285,6 +303,21 @@ export default function ReleaseNotesPage() {
   const handleDelete = () => {
     if (deleteDialog.release) {
       deleteMutation.mutate(deleteDialog.release.id)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    if (!previewRef.current || !viewingRelease) return
+
+    setIsExporting(true)
+    try {
+      const template = templates?.find(t => t.id === selectedTemplateId) || templates?.[0]
+      const product = products?.rows?.find(p => p.id === viewingRelease.productId)
+      await exportReleaseNoteToPDF(viewingRelease, template, product, previewRef.current)
+    } catch (error) {
+      console.error("Failed to export PDF:", error)
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -308,11 +341,11 @@ export default function ReleaseNotesPage() {
     })
   }
 
-  const getTypeColor = (type) => {
-    return itemTypes.find((t) => t.value === type)?.color || "default"
-  }
-
   const isSubmitting = createMutation.isPending || updateMutation.isPending
+
+  // Get current template and product for preview
+  const currentTemplate = templates?.find(t => t.id === selectedTemplateId) || templates?.[0]
+  const currentProduct = viewingRelease ? products?.rows?.find(p => p.id === viewingRelease.productId) : null
 
   return (
     <div className="space-y-6">
@@ -324,9 +357,7 @@ export default function ReleaseNotesPage() {
             </div>
             Release Notes
           </h1>
-          <p className="text-muted-foreground">
-            Track product versions and changes
-          </p>
+          <p className="text-muted-foreground">Track product versions and changes</p>
         </div>
         {canEdit() && (
           <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
@@ -350,9 +381,7 @@ export default function ReleaseNotesPage() {
                       <Label htmlFor="productId">Product *</Label>
                       <Select
                         value={formData.productId}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, productId: value })
-                        }
+                        onValueChange={(value) => setFormData({ ...formData, productId: value })}
                         disabled={!!editingRelease}
                       >
                         <SelectTrigger>
@@ -368,37 +397,59 @@ export default function ReleaseNotesPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="templateId">Template</Label>
+                      <Select
+                        value={formData.templateId}
+                        onValueChange={(value) => setFormData({ ...formData, templateId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates?.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              <div className="flex items-center gap-2">
+                                <Layout className="h-4 w-4" />
+                                {template.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {formData.templateId && templates?.find(t => t.id === formData.templateId)?.description && (
+                        <p className="text-xs text-muted-foreground">
+                          {templates.find(t => t.id === formData.templateId).description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
                       <Label htmlFor="version">Version *</Label>
                       <Input
                         id="version"
                         value={formData.version}
-                        onChange={(e) =>
-                          setFormData({ ...formData, version: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                         placeholder="e.g., 2.1.0"
                         required
                       />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="releaseDate">Release Date</Label>
-                    <Input
-                      id="releaseDate"
-                      type="date"
-                      value={formData.releaseDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, releaseDate: e.target.value })
-                      }
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="releaseDate">Release Date</Label>
+                      <Input
+                        id="releaseDate"
+                        type="date"
+                        value={formData.releaseDate}
+                        onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="summary">Summary</Label>
                     <Textarea
                       id="summary"
                       value={formData.summary}
-                      onChange={(e) =>
-                        setFormData({ ...formData, summary: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                       placeholder="Brief description of this release..."
                       rows={2}
                     />
@@ -438,12 +489,7 @@ export default function ReleaseNotesPage() {
                               className="flex-1"
                             />
                             {formData.items.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(index)}
-                              >
+                              <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(index)}>
                                 Remove
                               </Button>
                             )}
@@ -464,9 +510,7 @@ export default function ReleaseNotesPage() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {editingRelease ? "Save Changes" : "Create"}
                   </Button>
                 </DialogFooter>
@@ -533,6 +577,7 @@ export default function ReleaseNotesPage() {
                   key={release.id}
                   release={release}
                   products={products}
+                  onView={openViewDialog}
                   onEdit={openEditDialog}
                   onDelete={(r) => setDeleteDialog({ open: true, release: r })}
                   canEdit={canEdit()}
@@ -562,7 +607,7 @@ export default function ReleaseNotesPage() {
                     <TableRow key={release.id}>
                       <TableCell className="font-medium">
                         <button
-                          onClick={() => openEditDialog(release)}
+                          onClick={() => openViewDialog(release)}
                           className="hover:text-primary hover:underline transition-colors"
                         >
                           {productName}
@@ -591,28 +636,35 @@ export default function ReleaseNotesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {canEdit() && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(release)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => setDeleteDialog({ open: true, release })}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openViewDialog(release)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            {canEdit() && (
+                              <>
+                                <DropdownMenuItem onClick={() => openEditDialog(release)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => setDeleteDialog({ open: true, release })}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   )
@@ -630,6 +682,84 @@ export default function ReleaseNotesPage() {
         </CardContent>
       </Card>
 
+      {/* View/Preview Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Release Notes Preview
+                </DialogTitle>
+                <DialogDescription>
+                  View and export release notes with different templates
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates?.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex items-center gap-2">
+                          <Layout className="h-4 w-4" />
+                          {template.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto bg-muted/30 rounded-lg p-4">
+            <ReleaseNotePreview
+              ref={previewRef}
+              releaseNote={viewingRelease}
+              template={currentTemplate}
+              product={currentProduct}
+            />
+          </div>
+
+          <DialogFooter className="border-t pt-4">
+            <div className="flex items-center gap-2 w-full justify-between">
+              <div className="text-sm text-muted-foreground">
+                {currentTemplate && (
+                  <span className="flex items-center gap-1">
+                    <Layout className="h-4 w-4" />
+                    Template: {currentTemplate.name}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {canEdit() && (
+                  <Button variant="outline" onClick={() => {
+                    setViewDialogOpen(false)
+                    if (viewingRelease) openEditDialog(viewingRelease)
+                  }}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                <Button onClick={handleExportPDF} disabled={isExporting}>
+                  {isExporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <AlertDialogContent>
           <AlertDialogHeader>

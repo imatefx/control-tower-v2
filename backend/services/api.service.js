@@ -91,10 +91,16 @@ module.exports = {
           "POST /checklist-templates/reorder": "checklistTemplates.reorder",
           "POST /checklist-templates/seed": "checklistTemplates.seedDefaults",
 
+          // Release Note Templates
+          "GET /release-note-templates": "releaseNoteTemplates.list",
+          "GET /release-note-templates/active": "releaseNoteTemplates.getActive",
+          "GET /release-note-templates/:id": "releaseNoteTemplates.get",
+
           // Release Notes
           "GET /release-notes": "releaseNotes.list",
           "GET /release-notes/:id": "releaseNotes.get",
           "GET /release-notes/product/:productId": "releaseNotes.getByProduct",
+          "GET /release-notes/:id/export": "releaseNotes.getForExport",
           "POST /release-notes": "releaseNotes.create",
           "PUT /release-notes/:id": "releaseNotes.update",
           "DELETE /release-notes/:id": "releaseNotes.remove",

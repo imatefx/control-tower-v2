@@ -7,18 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { ArrowLeft, Users, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Building2, Loader2, Save } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-
-const regions = ["NA", "EU", "APAC", "LATAM", "MEA"]
-const tiers = ["enterprise", "business", "starter"]
 
 export default function ClientEditPage() {
   const { id } = useParams()
@@ -28,11 +18,6 @@ export default function ClientEditPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    code: "",
-    region: "",
-    tier: "business",
-    contactEmail: "",
-    contactName: "",
     comments: "",
   })
 
@@ -45,11 +30,6 @@ export default function ClientEditPage() {
     if (client) {
       setFormData({
         name: client.name || "",
-        code: client.code || "",
-        region: client.region || "",
-        tier: client.tier || "business",
-        contactEmail: client.contactEmail || "",
-        contactName: client.contactName || "",
         comments: client.comments || "",
       })
     }
@@ -107,12 +87,14 @@ export default function ClientEditPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Users className="h-8 w-8" />
-            Edit Client
-          </h1>
-          <p className="text-muted-foreground">{client.name}</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+            <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Edit Client</h1>
+            <p className="text-muted-foreground">{client.name}</p>
+          </div>
         </div>
       </div>
 
@@ -123,93 +105,24 @@ export default function ClientEditPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="code">Code</Label>
-                <Input
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  placeholder="e.g., ACME"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="region">Region</Label>
-                <Select
-                  value={formData.region || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, region: value === "none" ? "" : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {regions.map((region) => (
-                      <SelectItem key={region} value={region}>
-                        {region}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tier">Tier</Label>
-                <Select
-                  value={formData.tier}
-                  onValueChange={(value) => setFormData({ ...formData, tier: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tiers.map((tier) => (
-                      <SelectItem key={tier} value={tier}>
-                        {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactName">Contact Name</Label>
-                <Input
-                  id="contactName"
-                  value={formData.contactName}
-                  onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter client name"
+                required
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="comments">Comments</Label>
+              <Label htmlFor="comments">Notes</Label>
               <Textarea
                 id="comments"
                 value={formData.comments}
                 onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                placeholder="Optional notes about this client"
                 rows={4}
               />
             </div>
