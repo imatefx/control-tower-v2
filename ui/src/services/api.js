@@ -28,8 +28,14 @@ api.interceptors.response.use(
 )
 
 // Auth - uses /auth path not /api/auth
+// Derive auth base URL from VITE_API_URL by removing /api suffix
+const getAuthBaseURL = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+  return apiUrl.replace(/\/api\/?$/, '')
+}
+
 const authClient = axios.create({
-  baseURL: '',
+  baseURL: getAuthBaseURL(),
   headers: { 'Content-Type': 'application/json' },
 })
 authClient.interceptors.response.use(
