@@ -27,6 +27,7 @@ import AuditLogsPage from "@/pages/AuditLogsPage"
 import SettingsPage from "@/pages/SettingsPage"
 import TrashPage from "@/pages/TrashPage"
 import ChecklistItemsPage from "@/pages/ChecklistItemsPage"
+import ShareholderDashboardPage from "@/pages/ShareholderDashboardPage"
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, hasRole, loading } = useAuth()
@@ -78,6 +79,7 @@ function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="releases" element={<ShareholderDashboardPage />} />
 
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:id" element={<ProductDetailPage />} />

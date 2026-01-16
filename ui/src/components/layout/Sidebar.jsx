@@ -22,6 +22,7 @@ import {
   Zap,
   LogOut,
   Clock,
+  TrendingUp,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,7 @@ const navigationGroups = [
     label: "MODULES",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
+      { name: "Upcoming Releases", href: "/releases", icon: TrendingUp, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Products", href: "/products", icon: Package, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Clients", href: "/clients", icon: Users, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Deployments", href: "/deployments", icon: Rocket, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
