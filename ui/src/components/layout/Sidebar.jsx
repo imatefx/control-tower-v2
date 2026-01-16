@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
+import { version } from "../../../package.json"
 import {
   LayoutDashboard,
   Package,
@@ -139,7 +140,7 @@ export function Sidebar() {
       <div className="px-2 py-2 border-t border-slate-800">
         {!collapsed && (
           <div className="text-center mb-2">
-            <span className="text-[10px] text-slate-500">v1.2.1</span>
+            <span className="text-[10px] text-slate-500">v{version}</span>
           </div>
         )}
         <Button
