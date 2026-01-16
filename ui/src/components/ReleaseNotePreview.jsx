@@ -1,4 +1,5 @@
 import { forwardRef } from "react"
+import { formatDate } from "@/utils/dateFormat"
 import {
   Sparkles,
   Bug,
@@ -97,11 +98,7 @@ const ReleaseNotePreview = forwardRef(({ releaseNote, template, product, classNa
             {showDate && releaseNote.releaseDate && (
               <>
                 <span className="font-semibold text-slate-700">Release Date:</span>
-                <span className="text-slate-600">{new Date(releaseNote.releaseDate).toLocaleDateString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  year: "2-digit"
-                })}</span>
+                <span className="text-slate-600">{formatDate(releaseNote.releaseDate)}</span>
               </>
             )}
             {showClient && releaseNote.client && (
@@ -143,11 +140,7 @@ const ReleaseNotePreview = forwardRef(({ releaseNote, template, product, classNa
         {showDate && releaseNote.releaseDate && (
           <div className="flex items-center gap-2 text-sm mt-2 opacity-90">
             <Calendar className="h-4 w-4" />
-            <span>{new Date(releaseNote.releaseDate).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-            })}</span>
+            <span>{formatDate(releaseNote.releaseDate)}</span>
           </div>
         )}
       </div>

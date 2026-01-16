@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { auditAPI } from "@/services/api"
+import { formatDateTime } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -59,13 +60,12 @@ const actionTypes = [
   "status_change",
 ]
 
-const entityTypes = [
+const resourceTypes = [
   "user",
   "product",
   "client",
   "deployment",
-  "checklist",
-  "release_note",
+  "releaseNote",
   "approval",
 ]
 
@@ -87,15 +87,15 @@ export default function AuditLogsPage() {
   const [selectedLog, setSelectedLog] = useState(null)
   const [page, setPage] = useState(1)
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logsResponse, isLoading } = useQuery({
     queryKey: ["audit-logs", search, actionFilter, entityFilter, page],
     queryFn: () =>
       auditAPI.list({
         search,
         action: actionFilter === "all" ? undefined : actionFilter,
-        entityType: entityFilter === "all" ? undefined : entityFilter,
+        resourceType: entityFilter === "all" ? undefined : entityFilter,
         page,
-        pageSize: 20,
+        limit: 20,
       }),
   })
 
@@ -110,8 +110,9 @@ export default function AuditLogsPage() {
     status_change: "warning",
   }
 
-  const totalLogs = logs?.total || 0
-  const totalPages = Math.ceil(totalLogs / 20)
+  const logs = logsResponse?.data || []
+  const totalLogs = logsResponse?.pagination?.total || 0
+  const totalPages = logsResponse?.pagination?.totalPages || 1
 
   return (
     <div className="space-y-6">
@@ -150,7 +151,7 @@ export default function AuditLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
-              {logs?.rows?.filter(l => l.action === "create").length || 0}
+              {logs.filter(l => l.action === "create").length || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">This page</p>
           </CardContent>
@@ -164,7 +165,7 @@ export default function AuditLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              {logs?.rows?.filter(l => l.action === "update").length || 0}
+              {logs.filter(l => l.action === "update" || l.action === "status_change").length || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">This page</p>
           </CardContent>
@@ -178,7 +179,7 @@ export default function AuditLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {logs?.rows?.filter(l => l.action === "delete").length || 0}
+              {logs.filter(l => l.action === "delete").length || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">This page</p>
           </CardContent>
@@ -215,13 +216,13 @@ export default function AuditLogsPage() {
         <Select value={entityFilter} onValueChange={setEntityFilter}>
           <SelectTrigger className="w-40">
             <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="All Entities" />
+            <SelectValue placeholder="All Resources" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Entities</SelectItem>
-            {entityTypes.map((entity) => (
-              <SelectItem key={entity} value={entity}>
-                <span className="capitalize">{entity.replace("_", " ")}</span>
+            <SelectItem value="all">All Resources</SelectItem>
+            {resourceTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                <span className="capitalize">{type.replace(/([A-Z])/g, " $1").trim()}</span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -249,28 +250,28 @@ export default function AuditLogsPage() {
                     <TableHead>Timestamp</TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead className="text-right">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs?.rows?.map((log) => {
+                  {logs.map((log) => {
                     const ActionIcon = actionIcons[log.action] || Activity
                     return (
                       <TableRow key={log.id}>
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {new Date(log.createdAt).toLocaleString()}
+                            {formatDateTime(log.timestamp)}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-                              <User className="h-3 w-3 text-slate-600" />
+                            <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                              <User className="h-3 w-3 text-slate-600 dark:text-slate-400" />
                             </div>
-                            {log.user?.name || "System"}
+                            {log.userName || "System"}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -281,11 +282,11 @@ export default function AuditLogsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="capitalize">
-                            {log.entityType?.replace("_", " ")}
+                            {log.resourceType?.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
-                          {log.description || "-"}
+                          {log.resourceName || "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -299,7 +300,7 @@ export default function AuditLogsPage() {
                       </TableRow>
                     )
                   })}
-                  {(!logs?.rows || logs.rows.length === 0) && (
+                  {logs.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                         <ScrollText className="h-12 w-12 mx-auto mb-4 opacity-20" />
@@ -387,7 +388,7 @@ export default function AuditLogsPage() {
                     Timestamp
                   </label>
                   <p className="font-medium mt-1">
-                    {new Date(selectedLog.createdAt).toLocaleString()}
+                    {formatDateTime(selectedLog.timestamp)}
                   </p>
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
@@ -395,8 +396,11 @@ export default function AuditLogsPage() {
                     User
                   </label>
                   <p className="font-medium mt-1">
-                    {selectedLog.user?.name || "System"}
+                    {selectedLog.userName || "System"}
                   </p>
+                  {selectedLog.userEmail && (
+                    <p className="text-xs text-muted-foreground">{selectedLog.userEmail}</p>
+                  )}
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
@@ -410,49 +414,47 @@ export default function AuditLogsPage() {
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Entity Type
+                    Resource Type
                   </label>
                   <p className="mt-1">
                     <Badge variant="outline" className="capitalize">
-                      {selectedLog.entityType?.replace("_", " ")}
+                      {selectedLog.resourceType?.replace("_", " ")}
                     </Badge>
                   </p>
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Entity ID
+                    Resource ID
                   </label>
-                  <p className="font-mono text-sm mt-1">{selectedLog.entityId}</p>
+                  <p className="font-mono text-sm mt-1">{selectedLog.resourceId || "-"}</p>
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
-                    IP Address
+                    Resource Name
                   </label>
-                  <p className="font-mono text-sm mt-1">{selectedLog.ipAddress || "-"}</p>
+                  <p className="font-medium mt-1">{selectedLog.resourceName || "-"}</p>
                 </div>
               </div>
 
-              {selectedLog.description && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Description
-                  </label>
-                  <p className="mt-1">{selectedLog.description}</p>
-                </div>
-              )}
-
-              {selectedLog.changes && (
+              {selectedLog.changes && selectedLog.changes.length > 0 && (
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
                     Changes
                   </label>
-                  <pre className="mt-2 p-3 bg-slate-900 text-slate-100 rounded-lg text-sm overflow-auto max-h-64">
-                    {JSON.stringify(selectedLog.changes, null, 2)}
-                  </pre>
+                  <div className="mt-2 space-y-2">
+                    {selectedLog.changes.map((change, idx) => (
+                      <div key={idx} className="p-2 bg-background rounded border text-sm">
+                        <span className="font-medium capitalize">{change.field}:</span>
+                        <span className="text-red-500 ml-2 line-through">{String(change.oldValue || "")}</span>
+                        <span className="mx-2">→</span>
+                        <span className="text-green-500">{String(change.newValue || "")}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {selectedLog.metadata && (
+              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                 <div className="p-3 bg-muted rounded-lg">
                   <label className="text-xs font-medium text-muted-foreground">
                     Metadata

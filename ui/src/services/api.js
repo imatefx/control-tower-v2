@@ -79,6 +79,8 @@ export const clientsAPI = {
   update: (id, data) => api.put(`/clients/${id}`, data),
   delete: (id) => api.delete(`/clients/${id}`),
   restore: (id) => api.put(`/clients/${id}/restore`),
+  addDocumentation: (id, data) => api.post(`/clients/${id}/documentation`, data),
+  removeDocumentation: (id, docId) => api.delete(`/clients/${id}/documentation/${docId}`),
 }
 
 // Deployments
@@ -97,10 +99,9 @@ export const deploymentsAPI = {
 // Checklists
 export const checklistsAPI = {
   getByDeployment: (deploymentId) => api.get(`/checklists/deployment/${deploymentId}`),
-  updateItem: (id, itemKey, completed) =>
-    api.put(`/checklists/${id}/item`, { itemKey, completed }),
-  markAllComplete: (id) => api.put(`/checklists/${id}/complete-all`),
-  resetAll: (id) => api.put(`/checklists/${id}/reset`),
+  toggleItem: (id) => api.put(`/checklists/${id}/toggle`),
+  markAllComplete: (deploymentId) => api.put(`/checklists/deployment/${deploymentId}/complete`),
+  resetAll: (deploymentId) => api.put(`/checklists/deployment/${deploymentId}/reset`),
 }
 
 // Checklist Templates (Admin)
@@ -159,10 +160,25 @@ export const engineeringAPI = {
   allocateResource: (data) => api.post('/engineering/allocation', data),
 }
 
+// Resource Allocation
+export const resourceAllocationAPI = {
+  list: (params) => api.get('/resource-allocation', { params }),
+  getRoles: () => api.get('/resource-allocation/roles'),
+  getAllSummaries: () => api.get('/resource-allocation/summaries'),
+  getByProduct: (productId) => api.get(`/resource-allocation/product/${productId}`),
+  getSummary: (productId) => api.get(`/resource-allocation/product/${productId}/summary`),
+  get: (id) => api.get(`/resource-allocation/${id}`),
+  create: (data) => api.post('/resource-allocation', data),
+  update: (id, data) => api.put(`/resource-allocation/${id}`, data),
+  delete: (id) => api.delete(`/resource-allocation/${id}`),
+}
+
 // Audit Logs
 export const auditAPI = {
-  list: (params) => api.get('/audit', { params }),
-  get: (id) => api.get(`/audit/${id}`),
+  list: (params) => api.get('/audit-logs', { params }),
+  get: (id) => api.get(`/audit-logs/${id}`),
+  getByResource: (resourceType, resourceId) => api.get(`/audit-logs/resource/${resourceType}/${resourceId}`),
+  getByUser: (userId) => api.get(`/audit-logs/user/${userId}`),
 }
 
 // Config

@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { deploymentsAPI, checklistsAPI, checklistTemplatesAPI, productsAPI } from "@/services/api"
+import { formatDate, formatDateTime } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -78,7 +79,7 @@ export default function DeploymentDetailPage() {
     queryFn: () => deploymentsAPI.get(id),
   })
 
-  const { data: checklist } = useQuery({
+  const { data: checklistData } = useQuery({
     queryKey: ["checklist", id],
     queryFn: () => checklistsAPI.getByDeployment(id),
   })
@@ -95,8 +96,22 @@ export default function DeploymentDetailPage() {
     enabled: !!deployment?.productId,
   })
 
-  // Use dynamic checklist items from templates
-  const checklistItems = checklistTemplates || []
+  // Create a lookup map from checklist items array (by item name)
+  const checklistMap = (checklistData || []).reduce((acc, item) => {
+    acc[item.item] = item
+    return acc
+  }, {})
+
+  // Check if templates match database items
+  const templatesMatchData = checklistTemplates?.length > 0 &&
+    checklistTemplates.some(t => checklistMap[t.label])
+
+  // Use database items directly if templates don't match, otherwise use templates
+  const checklistItems = (checklistData && checklistData.length > 0 && !templatesMatchData)
+    ? checklistData.map(item => ({ key: item.item, label: item.item }))
+    : (checklistTemplates?.length > 0
+        ? checklistTemplates
+        : (checklistData || []).map(item => ({ key: item.item, label: item.item })))
 
   // Check if product is an adapter type
   const isAdapterProduct = product?.isAdapter || false
@@ -112,8 +127,7 @@ export default function DeploymentDetailPage() {
   })
 
   const updateChecklistMutation = useMutation({
-    mutationFn: ({ itemKey, completed }) =>
-      checklistsAPI.updateItem(checklist?.id, itemKey, completed),
+    mutationFn: (itemId) => checklistsAPI.toggleItem(itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist", id] })
       queryClient.invalidateQueries({ queryKey: ["deployment", id] })
@@ -144,8 +158,11 @@ export default function DeploymentDetailPage() {
     updateStatusMutation.mutate({ status: "blocked", blockedComment })
   }
 
-  const handleChecklistToggle = (itemKey, currentValue) => {
-    updateChecklistMutation.mutate({ itemKey, completed: !currentValue })
+  const handleChecklistToggle = (itemName) => {
+    const checklistItem = checklistMap[itemName]
+    if (checklistItem?.id) {
+      updateChecklistMutation.mutate(checklistItem.id)
+    }
   }
 
   if (isLoading) {
@@ -204,27 +221,34 @@ export default function DeploymentDetailPage() {
   }
 
   // Calculate days until/since target date
-  const getDateStatus = (dateStr) => {
+  const getDateStatus = (dateStr, status) => {
     if (!dateStr) return null
     const targetDate = new Date(dateStr)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     targetDate.setHours(0, 0, 0, 0)
     const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24))
+    // Released deployments are never overdue or urgent
+    const isReleased = status === "Released"
     return {
       diffDays,
-      isOverdue: diffDays < 0,
-      isUrgent: diffDays >= 0 && diffDays <= 3,
-      isSoon: diffDays > 3 && diffDays <= 7,
+      isOverdue: !isReleased && diffDays < 0,
+      isUrgent: !isReleased && diffDays >= 0 && diffDays <= 3,
+      isSoon: !isReleased && diffDays > 3 && diffDays <= 7,
+      isReleased,
     }
   }
 
-  const dateStatus = getDateStatus(deployment.nextDeliveryDate)
+  const dateStatus = getDateStatus(deployment.nextDeliveryDate, deployment.status)
 
-  const completedItems = checklist
-    ? checklistItems.filter((item) => checklist[item.key]).length
+  // Calculate completed items using the checklist map
+  const completedItems = checklistItems.filter((item) => {
+    const checklistItem = checklistMap[item.label] || checklistMap[item.key]
+    return checklistItem?.isCompleted
+  }).length
+  const progressPercent = checklistItems.length > 0
+    ? Math.round((completedItems / checklistItems.length) * 100)
     : 0
-  const progressPercent = Math.round((completedItems / checklistItems.length) * 100)
 
   return (
     <div className="space-y-6">
@@ -287,17 +311,17 @@ export default function DeploymentDetailPage() {
 
       {/* Quick Stats Cards */}
       <div className="grid gap-4 md:grid-cols-5">
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-100 dark:border-blue-800">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-500">
                 <Package className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-xs text-blue-600 font-medium">Product</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Product</p>
                 <Link
                   to={`/products/${deployment.productId}`}
-                  className="font-semibold hover:underline text-blue-900"
+                  className="font-semibold hover:underline text-blue-900 dark:text-blue-100"
                 >
                   {deployment.productName}
                 </Link>
@@ -306,17 +330,17 @@ export default function DeploymentDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100">
+        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-100 dark:border-purple-800">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-500">
                 <Users className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-xs text-purple-600 font-medium">Client</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Client</p>
                 <Link
                   to={`/clients/${deployment.clientId}`}
-                  className="font-semibold hover:underline text-purple-900"
+                  className="font-semibold hover:underline text-purple-900 dark:text-purple-100"
                 >
                   {deployment.clientName}
                 </Link>
@@ -326,45 +350,52 @@ export default function DeploymentDetailPage() {
         </Card>
 
         <Card className={`border ${
-          dateStatus?.isOverdue ? "bg-gradient-to-br from-rose-50 to-red-50 border-rose-200" :
-          dateStatus?.isUrgent ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200" :
-          "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100"
+          dateStatus?.isOverdue ? "bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950 dark:to-red-950 border-rose-200 dark:border-rose-800" :
+          dateStatus?.isUrgent ? "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border-amber-200 dark:border-amber-800" :
+          dateStatus?.isReleased ? "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800" :
+          "bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 border-emerald-100 dark:border-emerald-800"
         }`}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${
                 dateStatus?.isOverdue ? "bg-rose-500" :
                 dateStatus?.isUrgent ? "bg-amber-500" :
+                dateStatus?.isReleased ? "bg-green-500" :
                 "bg-emerald-500"
               }`}>
                 <Calendar className="h-4 w-4 text-white" />
               </div>
               <div>
                 <p className={`text-xs font-medium ${
-                  dateStatus?.isOverdue ? "text-rose-600" :
-                  dateStatus?.isUrgent ? "text-amber-600" :
-                  "text-emerald-600"
+                  dateStatus?.isOverdue ? "text-rose-600 dark:text-rose-400" :
+                  dateStatus?.isUrgent ? "text-amber-600 dark:text-amber-400" :
+                  dateStatus?.isReleased ? "text-green-600 dark:text-green-400" :
+                  "text-emerald-600 dark:text-emerald-400"
                 }`}>Target Date</p>
                 <p className={`font-semibold ${
-                  dateStatus?.isOverdue ? "text-rose-900" :
-                  dateStatus?.isUrgent ? "text-amber-900" :
-                  "text-emerald-900"
+                  dateStatus?.isOverdue ? "text-rose-900 dark:text-rose-100" :
+                  dateStatus?.isUrgent ? "text-amber-900 dark:text-amber-100" :
+                  dateStatus?.isReleased ? "text-green-900 dark:text-green-100" :
+                  "text-emerald-900 dark:text-emerald-100"
                 }`}>
                   {deployment.nextDeliveryDate
-                    ? new Date(deployment.nextDeliveryDate).toLocaleDateString()
+                    ? formatDate(deployment.nextDeliveryDate)
                     : "Not set"}
                 </p>
                 {dateStatus && (
                   <p className={`text-xs ${
-                    dateStatus.isOverdue ? "text-rose-500" :
-                    dateStatus.isUrgent ? "text-amber-500" :
-                    "text-emerald-500"
+                    dateStatus.isOverdue ? "text-rose-500 dark:text-rose-400" :
+                    dateStatus.isUrgent ? "text-amber-500 dark:text-amber-400" :
+                    dateStatus.isReleased ? "text-green-500 dark:text-green-400" :
+                    "text-emerald-500 dark:text-emerald-400"
                   }`}>
-                    {dateStatus.isOverdue
-                      ? `${Math.abs(dateStatus.diffDays)} days overdue`
-                      : dateStatus.diffDays === 0
-                        ? "Due today"
-                        : `${dateStatus.diffDays} days left`}
+                    {dateStatus.isReleased
+                      ? "Completed"
+                      : dateStatus.isOverdue
+                        ? `${Math.abs(dateStatus.diffDays)} days overdue`
+                        : dateStatus.diffDays === 0
+                          ? "Due today"
+                          : `${dateStatus.diffDays} days left`}
                   </p>
                 )}
               </div>
@@ -372,15 +403,15 @@ export default function DeploymentDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-50 to-gray-50 border-slate-100">
+        <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900 border-slate-100 dark:border-slate-700">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-slate-500">
                 <User className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-xs text-slate-600 font-medium">Delivery Person</p>
-                <p className="font-semibold text-slate-900">
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Delivery Person</p>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">
                   {deployment.deliveryPerson || "Not assigned"}
                 </p>
               </div>
@@ -388,20 +419,20 @@ export default function DeploymentDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-50 to-sky-50 border-cyan-100">
+        <Card className="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-950 dark:to-sky-950 border-cyan-100 dark:border-cyan-800">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-cyan-500">
                 <Zap className="h-4 w-4 text-white" />
               </div>
-              <div>
-                <p className="text-xs text-cyan-600 font-medium">Type / Env</p>
-                <div className="flex items-center gap-1">
-                  <Badge variant="outline" className="text-xs">
-                    {deployment.deploymentType?.toUpperCase() || "GA"}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">Type / Env</p>
+                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {deployment.deploymentType?.replace("-", " ") || "GA"}
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {deployment.environment?.toUpperCase() || "-"}
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {deployment.environment || "-"}
                   </Badge>
                 </div>
               </div>
@@ -429,7 +460,7 @@ export default function DeploymentDetailPage() {
                   <div key={comment.id || idx} className="text-sm bg-rose-100 p-3 rounded-lg">
                     <p className="text-rose-800">{comment.text}</p>
                     <div className="text-xs text-rose-500 mt-1">
-                      {comment.author} • {new Date(comment.timestamp).toLocaleDateString()}
+                      {comment.author} • {formatDate(comment.timestamp)}
                     </div>
                   </div>
                 ))}
@@ -489,38 +520,42 @@ export default function DeploymentDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {checklistItems.map((item, index) => (
-                    <div
-                      key={item.key}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                        checklist?.[item.key]
-                          ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800"
-                          : "bg-background border-border hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      <Checkbox
-                        id={item.key}
-                        checked={checklist?.[item.key] || false}
-                        onCheckedChange={() =>
-                          canEdit() && handleChecklistToggle(item.key, checklist?.[item.key])
-                        }
-                        disabled={!canEdit() || updateChecklistMutation.isPending}
-                        className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                      />
-                      <Label
-                        htmlFor={item.key}
-                        className={`flex-1 cursor-pointer font-normal ${
-                          checklist?.[item.key] ? "text-emerald-700" : ""
+                  {checklistItems.map((item, index) => {
+                    const checklistItem = checklistMap[item.label] || checklistMap[item.key]
+                    const isCompleted = checklistItem?.isCompleted || false
+                    return (
+                      <div
+                        key={item.key || item.label}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                          isCompleted
+                            ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800"
+                            : "bg-background border-border hover:border-muted-foreground/30"
                         }`}
                       >
-                        <span className="text-muted-foreground mr-2">{index + 1}.</span>
-                        {item.label}
-                      </Label>
-                      {checklist?.[item.key] && (
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </div>
-                  ))}
+                        <Checkbox
+                          id={item.key || item.label}
+                          checked={isCompleted}
+                          onCheckedChange={() =>
+                            canEdit() && checklistItem?.id && handleChecklistToggle(item.label || item.key)
+                          }
+                          disabled={!canEdit() || updateChecklistMutation.isPending}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                        />
+                        <Label
+                          htmlFor={item.key || item.label}
+                          className={`flex-1 cursor-pointer font-normal ${
+                            isCompleted ? "text-emerald-700" : ""
+                          }`}
+                        >
+                          <span className="text-muted-foreground mr-2">{index + 1}.</span>
+                          {item.label}
+                        </Label>
+                        {isCompleted && (
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -538,13 +573,13 @@ export default function DeploymentDetailPage() {
                   <div className="p-3 rounded-lg bg-muted">
                     <Label className="text-xs text-muted-foreground">Created</Label>
                     <p className="font-medium">
-                      {new Date(deployment.createdAt).toLocaleDateString()}
+                      {formatDate(deployment.createdAt)}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted">
                     <Label className="text-xs text-muted-foreground">Last Updated</Label>
                     <p className="font-medium">
-                      {new Date(deployment.updatedAt).toLocaleDateString()}
+                      {formatDate(deployment.updatedAt)}
                     </p>
                   </div>
                 </div>
@@ -580,7 +615,7 @@ export default function DeploymentDetailPage() {
                             <div key={note.id || idx} className="text-sm bg-muted p-3 rounded-lg border">
                               <p>{note.text}</p>
                               <div className="text-xs text-muted-foreground mt-1">
-                                {note.author} • {new Date(note.timestamp).toLocaleDateString()}
+                                {note.author} • {formatDate(note.timestamp)}
                               </div>
                             </div>
                           ))
@@ -803,7 +838,7 @@ export default function DeploymentDetailPage() {
                             </div>
                             <p className="text-sm text-muted-foreground">{entry.text}</p>
                             <p className="text-xs text-muted-foreground/70 mt-1">
-                              {entry.author} • {new Date(entry.timestamp).toLocaleString()}
+                              {entry.author} • {formatDateTime(entry.timestamp)}
                             </p>
                           </div>
                         </div>

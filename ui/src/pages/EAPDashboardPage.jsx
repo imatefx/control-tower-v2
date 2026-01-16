@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { productsAPI, deploymentsAPI, clientsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -90,9 +91,9 @@ function EAPProductCard({ product, deployments }) {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Calendar className="h-4 w-4" />
             <span>
-              {eapInfo.startDate && new Date(eapInfo.startDate).toLocaleDateString()}
+              {eapInfo.startDate && formatDate(eapInfo.startDate)}
               {eapInfo.startDate && eapInfo.endDate && " → "}
-              {eapInfo.endDate && new Date(eapInfo.endDate).toLocaleDateString()}
+              {eapInfo.endDate && formatDate(eapInfo.endDate)}
             </span>
           </div>
         )}
@@ -611,7 +612,7 @@ export default function EAPDashboardPage() {
                     <TableCell>
                       {deployment.nextDeliveryDate ? (
                         <span className={isOverdue ? "text-rose-600 font-medium" : ""}>
-                          {new Date(deployment.nextDeliveryDate).toLocaleDateString()}
+                          {formatDate(deployment.nextDeliveryDate)}
                           {isOverdue && <AlertTriangle className="h-3 w-3 inline ml-1" />}
                         </span>
                       ) : (

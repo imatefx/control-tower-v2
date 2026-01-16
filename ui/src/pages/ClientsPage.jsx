@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { clientsAPI } from "@/services/api"
+import { clientsAPI, productsAPI } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -142,6 +143,8 @@ export default function ClientsPage() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, client: null })
   const [formData, setFormData] = useState({
     name: "",
+    cdgOwner: "",
+    productIds: [],
     comments: "",
   })
   const queryClient = useQueryClient()
@@ -150,6 +153,11 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients", search],
     queryFn: () => clientsAPI.list({ search }),
+  })
+
+  const { data: products } = useQuery({
+    queryKey: ["products-all"],
+    queryFn: () => productsAPI.list({ pageSize: 100 }),
   })
 
   const createMutation = useMutation({
@@ -179,6 +187,8 @@ export default function ClientsPage() {
   const resetForm = () => {
     setFormData({
       name: "",
+      cdgOwner: "",
+      productIds: [],
       comments: "",
     })
   }
@@ -193,9 +203,20 @@ export default function ClientsPage() {
     setEditingClient(client)
     setFormData({
       name: client.name || "",
+      cdgOwner: client.cdgOwner || "",
+      productIds: client.productIds || [],
       comments: client.comments || "",
     })
     setDialogOpen(true)
+  }
+
+  const handleProductToggle = (productId) => {
+    const current = formData.productIds || []
+    if (current.includes(productId)) {
+      setFormData({ ...formData, productIds: current.filter(id => id !== productId) })
+    } else {
+      setFormData({ ...formData, productIds: [...current, productId] })
+    }
   }
 
   const openCreateDialog = () => {
@@ -251,7 +272,7 @@ export default function ClientsPage() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
+                    <Label htmlFor="name">Client Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -259,6 +280,41 @@ export default function ClientsPage() {
                       placeholder="Enter client name"
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cdgOwner">CDG Owner</Label>
+                    <Input
+                      id="cdgOwner"
+                      value={formData.cdgOwner}
+                      onChange={(e) => setFormData({ ...formData, cdgOwner: e.target.value })}
+                      placeholder="Enter CDG owner name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Products</Label>
+                    <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                      {products?.rows?.length > 0 ? (
+                        products.rows.map((product) => (
+                          <label
+                            key={product.id}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={formData.productIds?.includes(product.id)}
+                              onCheckedChange={() => handleProductToggle(product.id)}
+                            />
+                            <span className="text-sm">{product.name}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-2">No products available</p>
+                      )}
+                    </div>
+                    {formData.productIds?.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.productIds.length} product(s) selected
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="comments">Notes</Label>

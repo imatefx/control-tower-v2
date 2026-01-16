@@ -1,10 +1,12 @@
 import { useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { clientsAPI, deploymentsAPI } from "@/services/api"
+import { clientsAPI, deploymentsAPI, productsAPI } from "@/services/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -13,6 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Users, Rocket, Package, ExternalLink, Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle, Building2 } from "lucide-react"
+import { ArrowLeft, Users, Rocket, Package, ExternalLink, Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle, Building2, FileText, Plus, Link as LinkIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function ClientDetailPage() {
@@ -32,6 +43,9 @@ export default function ClientDetailPage() {
   const queryClient = useQueryClient()
   const { canEdit } = useAuth()
   const [deleteDialog, setDeleteDialog] = useState(false)
+  const [docDialogOpen, setDocDialogOpen] = useState(false)
+  const [deleteDocDialog, setDeleteDocDialog] = useState({ open: false, doc: null })
+  const [docForm, setDocForm] = useState({ title: "", url: "" })
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -43,6 +57,17 @@ export default function ClientDetailPage() {
     queryFn: () => deploymentsAPI.list({ clientId: id }),
   })
 
+  // Fetch all products to get the ones assigned to this client
+  const { data: allProducts } = useQuery({
+    queryKey: ["products-all"],
+    queryFn: () => productsAPI.list({ pageSize: 200 }),
+  })
+
+  // Get assigned products based on productIds
+  const assignedProducts = allProducts?.rows?.filter(p =>
+    client?.productIds?.includes(p.id)
+  ) || []
+
   const deleteMutation = useMutation({
     mutationFn: () => clientsAPI.delete(id),
     onSuccess: () => {
@@ -51,8 +76,36 @@ export default function ClientDetailPage() {
     },
   })
 
+  const addDocMutation = useMutation({
+    mutationFn: (data) => clientsAPI.addDocumentation(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client", id] })
+      setDocDialogOpen(false)
+      setDocForm({ title: "", url: "" })
+    },
+  })
+
+  const removeDocMutation = useMutation({
+    mutationFn: (docId) => clientsAPI.removeDocumentation(id, docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client", id] })
+      setDeleteDocDialog({ open: false, doc: null })
+    },
+  })
+
   const handleDelete = () => {
     deleteMutation.mutate()
+  }
+
+  const handleAddDoc = (e) => {
+    e.preventDefault()
+    addDocMutation.mutate(docForm)
+  }
+
+  const handleDeleteDoc = () => {
+    if (deleteDocDialog.doc) {
+      removeDocMutation.mutate(deleteDocDialog.doc.id)
+    }
   }
 
   if (isLoading) {
@@ -98,9 +151,6 @@ export default function ClientDetailPage() {
     d.status === "Blocked" || d.status === "blocked"
   ).length
 
-  // Get unique products
-  const uniqueProducts = [...new Set(deploymentRows.map(d => d.productId))].length
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -114,7 +164,12 @@ export default function ClientDetailPage() {
             <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
               <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-300" />
             </div>
-            <h1 className="text-3xl font-bold">{client.name}</h1>
+            <div>
+              <h1 className="text-3xl font-bold">{client.name}</h1>
+              {client.cdgOwner && (
+                <p className="text-sm text-muted-foreground">CDG Owner: {client.cdgOwner}</p>
+              )}
+            </div>
           </div>
         </div>
         {canEdit() && (
@@ -141,8 +196,8 @@ export default function ClientDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{uniqueProducts}</div>
-            <p className="text-xs text-blue-600 dark:text-blue-400">unique products deployed</p>
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{assignedProducts.length}</div>
+            <p className="text-xs text-blue-600 dark:text-blue-400">assigned products</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border-emerald-100 dark:border-emerald-800">
@@ -183,6 +238,49 @@ export default function ClientDetailPage() {
         </Card>
       </div>
 
+      {/* Assigned Products */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Assigned Products
+          </CardTitle>
+          <CardDescription>Products this client has access to</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {assignedProducts.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {assignedProducts.map((product) => (
+                <Link
+                  key={product.id}
+                  to={`/products/${product.id}`}
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                    <Package className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{product.name}</p>
+                    {product.status && (
+                      <Badge variant="outline" className="text-xs mt-1">
+                        {product.status}
+                      </Badge>
+                    )}
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p>No products assigned to this client</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Deployments */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -259,6 +357,117 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Documentation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Documentation
+              </CardTitle>
+              <CardDescription>Reference documents and links for this client</CardDescription>
+            </div>
+            {canEdit() && (
+              <Dialog open={docDialogOpen} onOpenChange={setDocDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={handleAddDoc}>
+                    <DialogHeader>
+                      <DialogTitle>Add Documentation Link</DialogTitle>
+                      <DialogDescription>
+                        Add a reference document or link for this client
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="doc-title">Title *</Label>
+                        <Input
+                          id="doc-title"
+                          value={docForm.title}
+                          onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                          placeholder="e.g., SOW Document"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doc-url">URL *</Label>
+                        <Input
+                          id="doc-url"
+                          type="url"
+                          value={docForm.url}
+                          onChange={(e) => setDocForm({ ...docForm, url: e.target.value })}
+                          placeholder="https://..."
+                          required
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setDocDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={addDocMutation.isPending}>
+                        {addDocMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Document
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {client.documentation && client.documentation.length > 0 ? (
+            <div className="space-y-2">
+              {client.documentation.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                >
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                  >
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                      <LinkIcon className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{doc.url}</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </a>
+                  {canEdit() && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2 flex-shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteDocDialog({ open: true, doc })}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p>No documentation added yet</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Client Dialog */}
       <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -280,6 +489,29 @@ export default function ClientDetailPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Documentation Dialog */}
+      <AlertDialog open={deleteDocDialog.open} onOpenChange={(open) => setDeleteDocDialog({ ...deleteDocDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDocDialog.doc?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDoc}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeDocMutation.isPending}
+            >
+              {removeDocMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

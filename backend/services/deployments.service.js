@@ -5,7 +5,7 @@ const { DataTypes } = require("sequelize");
 
 module.exports = {
   name: "deployments",
-  mixins: [DbMixin("deployments")],
+  mixins: [DbMixin("deployments", ["productName", "clientName", "featureName"])],
 
   settings: {
     fields: ["id", "clientId", "clientName", "clientIds", "clientNames", "productId", "productName", "status",
@@ -88,7 +88,32 @@ module.exports = {
         };
 
         const statusHistory = [...(deployment.statusHistory || []), historyEntry];
-        const updated = await this.adapter.updateById(id, { status, statusHistory });
+
+        // Use Sequelize model directly for proper JSONB update
+        await this.adapter.model.update(
+          { status, statusHistory },
+          { where: { id } }
+        );
+
+        // Fetch and return the updated entity
+        const updated = await this.adapter.findById(id);
+
+        // Audit log for status change
+        try {
+          await ctx.call("audit.log", {
+            userId: ctx.meta.user?.id,
+            userName: ctx.meta.user?.name || author,
+            userEmail: ctx.meta.user?.email,
+            action: "status_change",
+            resourceType: "deployment",
+            resourceId: id,
+            resourceName: updated.productName || "Deployment",
+            changes: [{ field: "status", oldValue: oldStatus, newValue: status }],
+            metadata: { ipAddress: ctx.meta.ipAddress, userAgent: ctx.meta.userAgent }
+          });
+        } catch (err) {
+          this.logger.warn("Failed to create audit log:", err.message);
+        }
 
         this.broker.emit("deployment.statusChanged", { deployment: updated, fromStatus: oldStatus, toStatus: status });
         return updated;
@@ -116,7 +141,14 @@ module.exports = {
         };
 
         const blockedComments = [...(deployment.blockedComments || []), comment];
-        return this.adapter.updateById(id, { blockedComments });
+
+        // Use Sequelize model directly for proper JSONB update
+        await this.adapter.model.update(
+          { blockedComments },
+          { where: { id } }
+        );
+
+        return this.adapter.findById(id);
       }
     },
 
@@ -157,6 +189,25 @@ module.exports = {
 
   hooks: {
     before: {
+      list: [
+        function(ctx) {
+          // Initialize query object if not present
+          if (!ctx.params.query) {
+            ctx.params.query = {};
+          }
+          // Move filter params from top-level to query object for moleculer-db
+          if (ctx.params.productId) {
+            ctx.params.query.productId = ctx.params.productId;
+            this.logger.info(`Filtering deployments by productId: ${ctx.params.productId}`);
+          }
+          if (ctx.params.clientId) {
+            ctx.params.query.clientId = ctx.params.clientId;
+          }
+          if (ctx.params.status) {
+            ctx.params.query.status = ctx.params.status;
+          }
+        }
+      ],
       create: [
         async function(ctx) {
           const product = await ctx.call("products.get", { id: ctx.params.productId });
@@ -196,22 +247,91 @@ module.exports = {
     after: {
       create: [
         async function(ctx, res) {
-          // Create default checklist items
-          const checklistItems = [
-            "Requirements Finalized",
-            "API Ready",
-            "Backend Ready",
-            "Frontend Ready",
-            "Test Cases Approved",
-            "UAT Completed",
-            "Release Notes Added",
-            "Documentation Uploaded",
-            "Go-Live Validation Completed"
-          ];
+          // Get checklist items from templates
+          let checklistItems;
+          try {
+            const templates = await ctx.call("checklistTemplates.getActive");
+            if (templates && templates.length > 0) {
+              checklistItems = templates.map(t => t.label);
+            }
+          } catch (err) {
+            this.logger.warn("Could not fetch checklist templates:", err.message);
+          }
+
+          // Fallback to defaults if no templates
+          if (!checklistItems || checklistItems.length === 0) {
+            checklistItems = [
+              "Requirements Gathering",
+              "Design & Architecture",
+              "Development",
+              "Testing",
+              "Documentation",
+              "Training",
+              "Deployment",
+              "Validation",
+              "Handover"
+            ];
+          }
+
           for (const item of checklistItems) {
             await ctx.call("checklists.create", { deploymentId: res.id, item, isCompleted: false });
           }
+
+          // Audit log
+          try {
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "create",
+              resourceType: "deployment",
+              resourceId: res.id,
+              resourceName: res.productName,
+              metadata: { clientName: res.clientName, environment: res.environment }
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
+
           this.broker.emit("deployment.created", res);
+          return res;
+        }
+      ],
+      update: [
+        async function(ctx, res) {
+          try {
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "update",
+              resourceType: "deployment",
+              resourceId: res.id,
+              resourceName: res.productName,
+              metadata: { clientName: res.clientName }
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
+          return res;
+        }
+      ],
+      remove: [
+        async function(ctx, res) {
+          try {
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "delete",
+              resourceType: "deployment",
+              resourceId: ctx.params.id,
+              resourceName: "Deployment deleted",
+              metadata: {}
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
           return res;
         }
       ]

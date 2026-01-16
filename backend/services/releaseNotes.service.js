@@ -5,7 +5,7 @@ const { DataTypes } = require("sequelize");
 
 module.exports = {
   name: "releaseNotes",
-  mixins: [DbMixin("release_notes")],
+  mixins: [DbMixin("release_notes", ["version", "title", "summary"])],
 
   settings: {
     fields: ["id", "productId", "templateId", "version", "releaseDate", "title", "summary", "items", "createdAt", "updatedAt"],

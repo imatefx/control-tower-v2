@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { usersAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -196,7 +197,7 @@ function UserCard({ user, onEdit, onDelete }) {
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            {new Date(user.createdAt).toLocaleDateString()}
+            {formatDate(user.createdAt)}
           </div>
         </div>
 
@@ -463,7 +464,7 @@ export default function UsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {formatDate(user.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

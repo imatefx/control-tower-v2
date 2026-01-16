@@ -10,7 +10,9 @@ module.exports = {
         const products = await ctx.call("products.find", {});
         const clients = await ctx.call("clients.find", {});
 
-        const eapProducts = products.filter(p => p.eap && p.eap.isActive).length;
+        // Count only main products (exclude sub-products that have a parentId)
+        const mainProducts = products.filter(p => !p.parentId);
+        const eapProducts = mainProducts.filter(p => p.eap && p.eap.isActive).length;
         const completedDeployments = deployments.filter(d => d.status === "Released").length;
 
         // Group deployments by status
@@ -29,7 +31,7 @@ module.exports = {
 
         return {
           data: {
-            totalProducts: products.length,
+            totalProducts: mainProducts.length,
             eapProducts,
             totalClients: clients.length,
             totalDeployments: deployments.length,

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { engineeringAPI, deploymentsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -157,14 +158,14 @@ export default function EngineeringPage() {
 
   const isLoading = capacityLoading || allocationLoading || deploymentsLoading
 
-  const totalCapacity = capacityData?.reduce((sum, t) => sum + t.totalCapacity, 0) || 0
-  const allocatedCapacity = capacityData?.reduce((sum, t) => sum + t.allocatedCapacity, 0) || 0
-  const availableCapacity = capacityData?.reduce((sum, t) => sum + t.availableCapacity, 0) || 0
+  const teams = capacityData?.rows || []
+  const totalCapacity = teams.reduce((sum, t) => sum + t.totalCapacity, 0) || 0
+  const allocatedCapacity = teams.reduce((sum, t) => sum + t.allocatedCapacity, 0) || 0
+  const availableCapacity = teams.reduce((sum, t) => sum + t.availableCapacity, 0) || 0
   const utilizationPercent = totalCapacity > 0 ? Math.round((allocatedCapacity / totalCapacity) * 100) : 0
 
   const activeDeployments = deployments?.rows?.length || 0
   const blockedDeployments = deployments?.rows?.filter((d) => d.status === "Blocked").length || 0
-  const teams = capacityData || []
 
   return (
     <div className="space-y-6">
@@ -215,7 +216,7 @@ export default function EngineeringPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="totalCapacity">Total Capacity</Label>
+                    <Label htmlFor="totalCapacity">Total Capacity (hrs)</Label>
                     <Input
                       id="totalCapacity"
                       type="number"
@@ -227,7 +228,7 @@ export default function EngineeringPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="allocatedCapacity">Allocated</Label>
+                    <Label htmlFor="allocatedCapacity">Allocated (hrs)</Label>
                     <Input
                       id="allocatedCapacity"
                       type="number"
@@ -239,7 +240,7 @@ export default function EngineeringPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="availableCapacity">Available</Label>
+                    <Label htmlFor="availableCapacity">Available (hrs)</Label>
                     <Input
                       id="availableCapacity"
                       type="number"
@@ -522,8 +523,8 @@ export default function EngineeringPage() {
                         <TableCell>{allocation.deployment?.product?.name}</TableCell>
                         <TableCell>{allocation.allocatedHours}h</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(allocation.startDate).toLocaleDateString()} -
-                          {new Date(allocation.endDate).toLocaleDateString()}
+                          {formatDate(allocation.startDate)} -
+                          {formatDate(allocation.endDate)}
                         </TableCell>
                       </TableRow>
                     ))}

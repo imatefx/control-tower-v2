@@ -9,8 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Moon, Sun, User, LogOut, Settings, Search, Rocket, AlertTriangle, Clock, CheckCircle } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Bell, Moon, Sun, User, LogOut, Settings, Rocket, AlertTriangle, Clock, CheckCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { deploymentsAPI } from "@/services/api"
@@ -90,17 +89,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      <div className="flex items-center gap-4 flex-1 max-w-xl">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search products, clients, deployments..."
-            className="pl-10"
-          />
-        </div>
-      </div>
-
+    <header className="flex h-16 items-center justify-end border-b bg-card px-6">
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

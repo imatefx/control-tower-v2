@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { productsAPI, clientsAPI, deploymentsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -263,7 +264,7 @@ export default function TrashPage() {
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {new Date(product.deletedAt).toLocaleDateString()}
+                            {formatDate(product.deletedAt)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -330,7 +331,7 @@ export default function TrashPage() {
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {new Date(client.deletedAt).toLocaleDateString()}
+                            {formatDate(client.deletedAt)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -393,7 +394,7 @@ export default function TrashPage() {
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {new Date(deployment.deletedAt).toLocaleDateString()}
+                            {formatDate(deployment.deletedAt)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

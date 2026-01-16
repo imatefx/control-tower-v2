@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { approvalsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -101,7 +102,7 @@ function ApprovalCard({ approval, onApprove, onReject, isPending }) {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
           <Calendar className="h-3 w-3" />
-          <span>{new Date(approval.createdAt).toLocaleDateString()}</span>
+          <span>{formatDate(approval.createdAt)}</span>
         </div>
 
         {approval.notes && (
@@ -368,7 +369,7 @@ export default function ApprovalsPage() {
                         <TableCell>{approval.deployment?.productName || "-"}</TableCell>
                         <TableCell>{approval.deployment?.clientName || "-"}</TableCell>
                         <TableCell>{approval.requestedBy?.name || "Unknown"}</TableCell>
-                        <TableCell>{new Date(approval.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>{formatDate(approval.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button
@@ -437,7 +438,7 @@ export default function ApprovalsPage() {
                         </TableCell>
                         <TableCell>{approval.requestedBy?.name || "Unknown"}</TableCell>
                         <TableCell>
-                          {new Date(approval.createdAt).toLocaleDateString()}
+                          {formatDate(approval.createdAt)}
                         </TableCell>
                       </TableRow>
                     )

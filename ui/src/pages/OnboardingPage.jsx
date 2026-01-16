@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { deploymentsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -127,7 +128,7 @@ function OnboardingCard({ deployment }) {
         {deployment.nextDeliveryDate && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
             <Calendar className="h-3 w-3" />
-            <span>Due: {new Date(deployment.nextDeliveryDate).toLocaleDateString()}</span>
+            <span>Due: {formatDate(deployment.nextDeliveryDate)}</span>
           </div>
         )}
 

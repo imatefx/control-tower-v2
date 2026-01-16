@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { productsAPI, deploymentsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -214,7 +215,7 @@ export default function ProductDetailPage() {
           <CardContent>
             <div className="font-semibold">
               {product.nextReleaseDate
-                ? new Date(product.nextReleaseDate).toLocaleDateString()
+                ? formatDate(product.nextReleaseDate)
                 : "Not scheduled"}
             </div>
           </CardContent>
@@ -247,13 +248,13 @@ export default function ProductDetailPage() {
               <div>
                 <div className="text-sm text-muted-foreground">Start Date</div>
                 <div className="font-medium">
-                  {eap.startDate ? new Date(eap.startDate).toLocaleDateString() : "Not set"}
+                  {eap.startDate ? formatDate(eap.startDate) : "Not set"}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">End Date</div>
                 <div className="font-medium">
-                  {eap.endDate ? new Date(eap.endDate).toLocaleDateString() : "Not set"}
+                  {eap.endDate ? formatDate(eap.endDate) : "Not set"}
                 </div>
               </div>
               <div>
@@ -395,7 +396,7 @@ export default function ProductDetailPage() {
                       </TableCell>
                       <TableCell>
                         {deployment.nextDeliveryDate
-                          ? new Date(deployment.nextDeliveryDate).toLocaleDateString()
+                          ? formatDate(deployment.nextDeliveryDate)
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">

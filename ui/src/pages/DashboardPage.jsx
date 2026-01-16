@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { reportsAPI, deploymentsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import {
   Package,
   Users,
@@ -163,7 +164,7 @@ function DeliveryTimelineCard({ deployment }) {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <Calendar className="h-3 w-3" />
-            {deployment.targetDate ? new Date(deployment.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No date"}
+            {deployment.targetDate ? formatDate(deployment.targetDate) : "No date"}
           </div>
           <div className="font-semibold text-sm line-clamp-1">{deployment.productName}</div>
           <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">

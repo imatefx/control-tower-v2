@@ -40,17 +40,25 @@ module.exports = {
       async handler(ctx) {
         const item = await this.adapter.findById(ctx.params.id);
         if (!item) throw new Error("Checklist item not found");
-        return this.adapter.updateById(ctx.params.id, { isCompleted: !item.isCompleted });
+
+        // Use Sequelize model directly for reliable update
+        await this.adapter.model.update(
+          { isCompleted: !item.isCompleted },
+          { where: { id: ctx.params.id } }
+        );
+
+        return this.adapter.findById(ctx.params.id);
       }
     },
 
     markAllComplete: {
       params: { deploymentId: "string" },
       async handler(ctx) {
-        const items = await this.adapter.find({ query: { deploymentId: ctx.params.deploymentId } });
-        for (const item of items) {
-          await this.adapter.updateById(item.id, { isCompleted: true });
-        }
+        // Use Sequelize model directly for reliable update
+        await this.adapter.model.update(
+          { isCompleted: true },
+          { where: { deploymentId: ctx.params.deploymentId } }
+        );
         return this.adapter.find({ query: { deploymentId: ctx.params.deploymentId } });
       }
     },
@@ -58,10 +66,11 @@ module.exports = {
     resetAll: {
       params: { deploymentId: "string" },
       async handler(ctx) {
-        const items = await this.adapter.find({ query: { deploymentId: ctx.params.deploymentId } });
-        for (const item of items) {
-          await this.adapter.updateById(item.id, { isCompleted: false });
-        }
+        // Use Sequelize model directly for reliable update
+        await this.adapter.model.update(
+          { isCompleted: false },
+          { where: { deploymentId: ctx.params.deploymentId } }
+        );
         return this.adapter.find({ query: { deploymentId: ctx.params.deploymentId } });
       }
     },

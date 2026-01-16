@@ -18,6 +18,8 @@ import OnboardingPage from "@/pages/OnboardingPage"
 import ReleaseNotesPage from "@/pages/ReleaseNotesPage"
 import EAPDashboardPage from "@/pages/EAPDashboardPage"
 import EngineeringPage from "@/pages/EngineeringPage"
+import ResourceAllocationPage from "@/pages/ResourceAllocationPage"
+import ResourceAllocationDetailPage from "@/pages/ResourceAllocationDetailPage"
 import UsersPage from "@/pages/UsersPage"
 import ApprovalsPage from "@/pages/ApprovalsPage"
 import ReportsPage from "@/pages/ReportsPage"
@@ -114,6 +116,23 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin", "engineering_manager"]}>
               <EngineeringPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="resource-allocation"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "delivery_lead", "product_owner", "engineering_manager"]}>
+              <ResourceAllocationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="resource-allocation/:productId"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "delivery_lead", "product_owner", "engineering_manager"]}>
+              <ResourceAllocationDetailPage />
             </ProtectedRoute>
           }
         />

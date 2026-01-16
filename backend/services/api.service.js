@@ -60,6 +60,8 @@ module.exports = {
           "POST /clients": "clients.create",
           "PUT /clients/:id": "clients.update",
           "DELETE /clients/:id": "clients.remove",
+          "POST /clients/:id/documentation": "clients.addDocumentation",
+          "DELETE /clients/:id/documentation/:docId": "clients.removeDocumentation",
 
           // Deployments
           "GET /deployments": "deployments.list",
@@ -143,10 +145,23 @@ module.exports = {
           // Engineering
           "GET /engineering/dashboard": "engineering.getDashboard",
           "GET /engineering/team/:managerId": "engineering.getTeamMembers",
-          "PUT /engineering/capacity/:userId": "engineering.updateCapacity",
+          "GET /engineering/capacity": "engineering.list",
+          "POST /engineering/capacity": "engineering.create",
+          "PUT /engineering/capacity/:id": "engineering.update",
           "POST /engineering/reassign": "engineering.reassign",
           "GET /engineering/bottlenecks": "engineering.getBottlenecks",
-          "GET /engineering/utilization": "engineering.getUtilizationReport"
+          "GET /engineering/utilization": "engineering.getUtilizationReport",
+
+          // Resource Allocation
+          "GET /resource-allocation": "resource-allocation.list",
+          "GET /resource-allocation/roles": "resource-allocation.getRoles",
+          "GET /resource-allocation/summaries": "resource-allocation.getAllSummaries",
+          "GET /resource-allocation/product/:productId": "resource-allocation.getByProduct",
+          "GET /resource-allocation/product/:productId/summary": "resource-allocation.getSummaryByProduct",
+          "GET /resource-allocation/:id": "resource-allocation.get",
+          "POST /resource-allocation": "resource-allocation.create",
+          "PUT /resource-allocation/:id": "resource-allocation.update",
+          "DELETE /resource-allocation/:id": "resource-allocation.remove"
         },
         bodyParsers: { json: { limit: "10MB" } },
 

@@ -16,11 +16,11 @@ import {
   CheckSquare,
   ListChecks,
   Trash2,
-  Wrench,
   ChevronLeft,
   ChevronRight,
   Zap,
   LogOut,
+  Clock,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ const navigationGroups = [
   {
     label: "SYSTEM",
     items: [
-      { name: "Engineering", href: "/engineering", icon: Wrench, roles: ["admin", "engineering_manager"] },
+      { name: "Resource Allocation", href: "/resource-allocation", icon: Clock, roles: ["admin", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Users", href: "/users", icon: UserCog, roles: ["admin"] },
       { name: "Approvals", href: "/approvals", icon: CheckSquare, roles: ["admin", "delivery_lead", "product_owner"] },
       { name: "Reports", href: "/reports", icon: BarChart3, roles: ["admin", "delivery_lead", "product_owner", "engineering_manager"] },
@@ -73,17 +73,17 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-              <Zap className="h-5 w-5 text-white" />
+              <Rocket className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="font-bold text-sm">iia</span>
-              <span className="text-slate-400 text-sm ml-1">elements</span>
+              <span className="font-bold text-sm">CDG</span>
+              <span className="text-slate-400 text-sm ml-1">Control Tower</span>
             </div>
           </div>
         )}
         {collapsed && (
           <div className="mx-auto p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-            <Zap className="h-5 w-5 text-white" />
+            <Rocket className="h-5 w-5 text-white" />
           </div>
         )}
       </div>

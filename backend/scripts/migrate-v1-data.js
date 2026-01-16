@@ -185,7 +185,7 @@ async function migrate() {
       INSERT INTO clients (id, name, comments, created_at, updated_at)
       VALUES ($1, $2, $3, NOW(), NOW())
       ON CONFLICT (id) DO NOTHING
-    `, { bind: [genericClientId, "Generic (No Client)", "Auto-created for deployments without client"] });
+    `, { bind: [genericClientId, "GA Release", "Standard product releases available to all clients without specific customization"] });
 
     let clientCount = 0;
     for (const c of clients) {
@@ -211,7 +211,7 @@ async function migrate() {
         const product = productMap.get(d.product_id);
 
         const clientId = d.client_id || genericClientId;
-        const clientName = client?.name || "Generic (No Client)";
+        const clientName = client?.name || "GA Release";
         const productName = product?.name || "Unknown Product";
 
         // Map deployment type

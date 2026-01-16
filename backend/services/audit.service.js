@@ -93,11 +93,14 @@ module.exports = {
         resourceType: { type: "string", optional: true },
         startDate: { type: "string", optional: true },
         endDate: { type: "string", optional: true },
-        page: { type: "number", optional: true, default: 1 },
-        limit: { type: "number", optional: true, default: 50 }
+        page: { type: "any", optional: true },
+        limit: { type: "any", optional: true },
+        search: { type: "string", optional: true }
       },
       async handler(ctx) {
-        const { userId, action, resourceType, startDate, endDate, page, limit } = ctx.params;
+        const { userId, action, resourceType, startDate, endDate, search } = ctx.params;
+        const page = parseInt(ctx.params.page) || 1;
+        const limit = parseInt(ctx.params.limit) || 50;
         let logs = await this.adapter.find({});
 
         if (userId) logs = logs.filter(l => l.userId === userId);
@@ -105,6 +108,13 @@ module.exports = {
         if (resourceType) logs = logs.filter(l => l.resourceType === resourceType);
         if (startDate) logs = logs.filter(l => new Date(l.timestamp) >= new Date(startDate));
         if (endDate) logs = logs.filter(l => new Date(l.timestamp) <= new Date(endDate));
+        if (search) {
+          const searchLower = search.toLowerCase();
+          logs = logs.filter(l =>
+            (l.resourceName && l.resourceName.toLowerCase().includes(searchLower)) ||
+            (l.userName && l.userName.toLowerCase().includes(searchLower))
+          );
+        }
 
         logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 

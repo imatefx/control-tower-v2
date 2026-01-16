@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { deploymentsAPI, productsAPI, clientsAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,7 +46,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -78,6 +81,8 @@ import {
   Mail,
   X,
   Bell,
+  Maximize2,
+  Minimize2,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Gantt, ViewMode } from "gantt-task-react"
@@ -85,6 +90,12 @@ import "gantt-task-react/dist/index.css"
 
 const environments = ["production", "sandbox", "qa"]
 const statuses = ["Not Started", "In Progress", "Blocked", "Released"]
+const adapterStatuses = [
+  { value: "not_started", label: "Not Started" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "na", label: "N/A" },
+]
 const deploymentTypes = [
   { value: "ga", label: "GA Release", icon: Rocket, color: "emerald", description: "General availability release to all clients" },
   { value: "eap", label: "EAP Release", icon: FlaskConical, color: "purple", description: "Early access program for selected clients" },
@@ -122,8 +133,9 @@ function getDaysUntil(dateStr) {
 function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
   const targetDate = deployment.nextDeliveryDate || deployment.targetDate
   const days = getDaysUntil(targetDate)
-  const isOverdue = days !== null && days < 0
-  const isUrgent = days !== null && days >= 0 && days <= 7
+  const isReleased = deployment.status === "Released"
+  const isOverdue = days !== null && days < 0 && !isReleased
+  const isUrgent = days !== null && days >= 0 && days <= 7 && !isReleased
 
   const typeConfig = {
     ga: { color: "emerald", icon: Rocket },
@@ -235,17 +247,20 @@ function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
         {/* Target Date */}
         {targetDate && (
           <div className={`flex items-center gap-1.5 text-xs mb-3 ${
+            isReleased ? "text-green-600 dark:text-green-400" :
             isOverdue ? "text-rose-600" : isUrgent ? "text-amber-600" : "text-muted-foreground"
           }`}>
             <Calendar className="h-3.5 w-3.5" />
             <span>
-              {isOverdue
-                ? `${Math.abs(days)}d overdue`
-                : days === 0
-                ? "Due today"
-                : `${days}d remaining`}
+              {isReleased
+                ? "Completed"
+                : isOverdue
+                  ? `${Math.abs(days)}d overdue`
+                  : days === 0
+                    ? "Due today"
+                    : `${days}d remaining`}
             </span>
-            {(isOverdue || isUrgent) && (
+            {!isReleased && (isOverdue || isUrgent) && (
               <span className={`w-1.5 h-1.5 rounded-full ${isOverdue ? "bg-rose-500" : "bg-amber-500"} animate-pulse`} />
             )}
           </div>
@@ -268,8 +283,9 @@ function DeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
 function KanbanCard({ deployment, onEdit, onDelete, canEdit }) {
   const targetDate = deployment.nextDeliveryDate || deployment.targetDate
   const days = getDaysUntil(targetDate)
-  const isOverdue = days !== null && days < 0
-  const isUrgent = days !== null && days >= 0 && days <= 7
+  const isReleased = deployment.status === "Released"
+  const isOverdue = days !== null && days < 0 && !isReleased
+  const isUrgent = days !== null && days >= 0 && days <= 7 && !isReleased
 
   const typeColors = {
     ga: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
@@ -347,17 +363,20 @@ function KanbanCard({ deployment, onEdit, onDelete, canEdit }) {
 
         {targetDate && (
           <div className={`flex items-center gap-1.5 text-xs ${
+            isReleased ? "text-green-600 dark:text-green-400" :
             isOverdue ? "text-rose-600 dark:text-rose-400" : isUrgent ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
           }`}>
             <Calendar className="h-3 w-3" />
             <span>
-              {isOverdue
-                ? `${Math.abs(days)}d overdue`
-                : days === 0
-                ? "Due today"
-                : `${days}d left`}
+              {isReleased
+                ? "Completed"
+                : isOverdue
+                  ? `${Math.abs(days)}d overdue`
+                  : days === 0
+                    ? "Due today"
+                    : `${days}d left`}
             </span>
-            {isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />}
+            {!isReleased && isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />}
           </div>
         )}
       </CardContent>
@@ -443,6 +462,17 @@ export default function DeploymentsPage() {
     releaseItems: "",
     notes: "",
     notificationEmails: [],
+    // Adapter service fields
+    equipmentSAStatus: "na",
+    equipmentSEStatus: "na",
+    mappingStatus: "na",
+    constructionStatus: "na",
+    // Documentation fields
+    documentation: {
+      runbook: { enabled: false, url: "" },
+      releaseNotesLink: { enabled: false, url: "" },
+      qaReport: { enabled: false, url: "" },
+    },
   })
   const [emailInput, setEmailInput] = useState("")
   const queryClient = useQueryClient()
@@ -504,6 +534,15 @@ export default function DeploymentsPage() {
       releaseItems: "",
       notes: "",
       notificationEmails: [],
+      equipmentSAStatus: "na",
+      equipmentSEStatus: "na",
+      mappingStatus: "na",
+      constructionStatus: "na",
+      documentation: {
+        runbook: { enabled: false, url: "" },
+        releaseNotesLink: { enabled: false, url: "" },
+        qaReport: { enabled: false, url: "" },
+      },
     })
     setEmailInput("")
     setFormStep(1)
@@ -530,6 +569,15 @@ export default function DeploymentsPage() {
       releaseItems: deployment.releaseItems || "",
       notes: deployment.notes || "",
       notificationEmails: deployment.notificationEmails || [],
+      equipmentSAStatus: deployment.equipmentSAStatus || "na",
+      equipmentSEStatus: deployment.equipmentSEStatus || "na",
+      mappingStatus: deployment.mappingStatus || "na",
+      constructionStatus: deployment.constructionStatus || "na",
+      documentation: deployment.documentation || {
+        runbook: { enabled: false, url: "" },
+        releaseNotesLink: { enabled: false, url: "" },
+        qaReport: { enabled: false, url: "" },
+      },
     })
     setEmailInput("")
     setFormStep(2) // Skip to details when editing
@@ -615,6 +663,18 @@ export default function DeploymentsPage() {
 
   // Gantt view mode state
   const [ganttViewMode, setGanttViewMode] = useState(ViewMode.Week)
+  const [ganttFullscreen, setGanttFullscreen] = useState(false)
+
+  // Handle Escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && ganttFullscreen) {
+        setGanttFullscreen(false)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [ganttFullscreen])
 
   // Convert deployments to Gantt tasks
   const ganttTasks = useMemo(() => {
@@ -775,16 +835,36 @@ export default function DeploymentsPage() {
                             })
                           }}
                           disabled={!!editingDeployment}
+                          required
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products?.rows?.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
+                            {/* Parent products (no parentId) */}
+                            {products?.rows?.filter(p => !p.parentId).map((parent) => {
+                              const children = products?.rows?.filter(p => p.parentId === parent.id) || []
+                              if (children.length > 0) {
+                                return (
+                                  <SelectGroup key={parent.id}>
+                                    <SelectItem value={parent.id} className="font-semibold">
+                                      {parent.name}
+                                    </SelectItem>
+                                    {children.map((child) => (
+                                      <SelectItem key={child.id} value={child.id} className="pl-8">
+                                        {child.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )
+                              }
+                              // Parent with no children - show as regular item
+                              return (
+                                <SelectItem key={parent.id} value={parent.id}>
+                                  {parent.name}
+                                </SelectItem>
+                              )
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
@@ -899,12 +979,13 @@ export default function DeploymentsPage() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="targetDate">Target Date</Label>
+                        <Label htmlFor="targetDate">Target Date *</Label>
                         <Input
                           id="targetDate"
                           type="date"
                           value={formData.targetDate}
                           onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                          required
                         />
                       </div>
                     </div>
@@ -919,14 +1000,179 @@ export default function DeploymentsPage() {
                       />
                     </div>
 
+                    {/* Adapter Service Fields - Only show for adapter products */}
+                    {selectedProduct?.isAdapter && (
+                      <div className="space-y-4 border-t pt-4 mt-4">
+                        <Label className="text-base font-medium">Adapter Service Status</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="equipmentSAStatus" className="text-sm">Equipment - Service Assurance</Label>
+                            <Select
+                              value={formData.equipmentSAStatus}
+                              onValueChange={(value) => setFormData({ ...formData, equipmentSAStatus: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {adapterStatuses.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="equipmentSEStatus" className="text-sm">Equipment - Service Enablement</Label>
+                            <Select
+                              value={formData.equipmentSEStatus}
+                              onValueChange={(value) => setFormData({ ...formData, equipmentSEStatus: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {adapterStatuses.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="mappingStatus" className="text-sm">Mapping Service</Label>
+                            <Select
+                              value={formData.mappingStatus}
+                              onValueChange={(value) => setFormData({ ...formData, mappingStatus: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {adapterStatuses.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="constructionStatus" className="text-sm">Construction Service</Label>
+                            <Select
+                              value={formData.constructionStatus}
+                              onValueChange={(value) => setFormData({ ...formData, constructionStatus: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {adapterStatuses.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Documentation Fields */}
+                    <div className="space-y-4 border-t pt-4 mt-4">
+                      <Label className="text-base font-medium">Documentation</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="doc-runbook"
+                            checked={formData.documentation?.runbook?.enabled}
+                            onCheckedChange={(checked) => setFormData({
+                              ...formData,
+                              documentation: {
+                                ...formData.documentation,
+                                runbook: { ...formData.documentation.runbook, enabled: checked }
+                              }
+                            })}
+                          />
+                          <Label htmlFor="doc-runbook" className="text-sm flex-shrink-0 w-40">Runbook/Deployment Guide</Label>
+                          {formData.documentation?.runbook?.enabled && (
+                            <Input
+                              placeholder="URL"
+                              value={formData.documentation?.runbook?.url || ""}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                documentation: {
+                                  ...formData.documentation,
+                                  runbook: { ...formData.documentation.runbook, url: e.target.value }
+                                }
+                              })}
+                              className="flex-1"
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="doc-releaseNotes"
+                            checked={formData.documentation?.releaseNotesLink?.enabled}
+                            onCheckedChange={(checked) => setFormData({
+                              ...formData,
+                              documentation: {
+                                ...formData.documentation,
+                                releaseNotesLink: { ...formData.documentation.releaseNotesLink, enabled: checked }
+                              }
+                            })}
+                          />
+                          <Label htmlFor="doc-releaseNotes" className="text-sm flex-shrink-0 w-40">Release Notes Link</Label>
+                          {formData.documentation?.releaseNotesLink?.enabled && (
+                            <Input
+                              placeholder="URL"
+                              value={formData.documentation?.releaseNotesLink?.url || ""}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                documentation: {
+                                  ...formData.documentation,
+                                  releaseNotesLink: { ...formData.documentation.releaseNotesLink, url: e.target.value }
+                                }
+                              })}
+                              className="flex-1"
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="doc-qaReport"
+                            checked={formData.documentation?.qaReport?.enabled}
+                            onCheckedChange={(checked) => setFormData({
+                              ...formData,
+                              documentation: {
+                                ...formData.documentation,
+                                qaReport: { ...formData.documentation.qaReport, enabled: checked }
+                              }
+                            })}
+                          />
+                          <Label htmlFor="doc-qaReport" className="text-sm flex-shrink-0 w-40">Test Results/QA Report</Label>
+                          {formData.documentation?.qaReport?.enabled && (
+                            <Input
+                              placeholder="URL"
+                              value={formData.documentation?.qaReport?.url || ""}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                documentation: {
+                                  ...formData.documentation,
+                                  qaReport: { ...formData.documentation.qaReport, url: e.target.value }
+                                }
+                              })}
+                              className="flex-1"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="releaseItems">Release Items</Label>
+                      <Label htmlFor="releaseItems">Release Items *</Label>
                       <Textarea
                         id="releaseItems"
                         value={formData.releaseItems}
                         onChange={(e) => setFormData({ ...formData, releaseItems: e.target.value })}
                         placeholder="List of items to be released..."
-                        rows={2}
+                        rows={4}
+                        required
                       />
                     </div>
 
@@ -1143,7 +1389,8 @@ export default function DeploymentsPage() {
                 {filteredDeployments?.map((deployment) => {
                   const targetDate = deployment.nextDeliveryDate || deployment.targetDate
                   const days = getDaysUntil(targetDate)
-                  const isOverdue = days !== null && days < 0
+                  const isReleased = deployment.status === "Released"
+                  const isOverdue = days !== null && days < 0 && !isReleased
                   return (
                     <TableRow key={deployment.id} className={isOverdue ? "bg-rose-50/50 dark:bg-rose-950/20" : ""}>
                       <TableCell className="font-medium">
@@ -1194,7 +1441,7 @@ export default function DeploymentsPage() {
                         {targetDate ? (
                           <div className={`flex items-center gap-1.5 text-sm ${isOverdue ? "text-rose-600" : ""}`}>
                             <Calendar className="h-3.5 w-3.5" />
-                            {new Date(targetDate).toLocaleDateString()}
+                            {formatDate(targetDate)}
                             {isOverdue && <Badge variant="destructive" className="ml-1 text-[10px] px-1">Overdue</Badge>}
                           </div>
                         ) : (
@@ -1264,117 +1511,138 @@ export default function DeploymentsPage() {
         </div>
       ) : (
         /* Gantt View */
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <GanttChartSquare className="h-5 w-5 text-indigo-500" />
-                <span className="font-semibold">Deployment Timeline</span>
+        <div className={ganttFullscreen ? "fixed inset-0 z-50 bg-background p-4 overflow-auto" : ""}>
+          <Card className={ganttFullscreen ? "h-full" : ""}>
+            <CardContent className={ganttFullscreen ? "pt-6 h-full flex flex-col" : "pt-6"}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <GanttChartSquare className="h-5 w-5 text-indigo-500" />
+                  <span className="font-semibold">Deployment Timeline</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">View:</span>
+                  <Select value={ganttViewMode} onValueChange={(v) => setGanttViewMode(v)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ViewMode.Day}>Day</SelectItem>
+                      <SelectItem value={ViewMode.Week}>Week</SelectItem>
+                      <SelectItem value={ViewMode.Month}>Month</SelectItem>
+                      <SelectItem value={ViewMode.Year}>Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setGanttFullscreen(!ganttFullscreen)}
+                    className="gap-2"
+                    title={ganttFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  >
+                    {ganttFullscreen ? (
+                      <>
+                        <Minimize2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Exit</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Fullscreen</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">View:</span>
-                <Select value={ganttViewMode} onValueChange={(v) => setGanttViewMode(v)}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ViewMode.Day}>Day</SelectItem>
-                    <SelectItem value={ViewMode.Week}>Week</SelectItem>
-                    <SelectItem value={ViewMode.Month}>Month</SelectItem>
-                    <SelectItem value={ViewMode.Year}>Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-4 mb-4 text-sm">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-slate-400" />
-                <span className="text-muted-foreground">Not Started</span>
+              <div className="flex items-center gap-4 mb-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-slate-400" />
+                  <span className="text-muted-foreground">Not Started</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-blue-500" />
+                  <span className="text-muted-foreground">In Progress</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <span className="text-muted-foreground">Blocked</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-green-500" />
+                  <span className="text-muted-foreground">Completed</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-blue-500" />
-                <span className="text-muted-foreground">In Progress</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-red-500" />
-                <span className="text-muted-foreground">Blocked</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-green-500" />
-                <span className="text-muted-foreground">Completed</span>
-              </div>
-            </div>
 
-            {ganttTasks.length > 0 ? (
-              <div className="gantt-container overflow-x-auto">
-                <Gantt
-                  tasks={ganttTasks}
-                  viewMode={ganttViewMode}
-                  onDoubleClick={(task) => {
-                    window.location.href = `/deployments/${task.id}`
-                  }}
-                  listCellWidth=""
-                  columnWidth={
-                    ganttViewMode === ViewMode.Day ? 65 :
-                    ganttViewMode === ViewMode.Week ? 250 :
-                    ganttViewMode === ViewMode.Month ? 300 :
-                    500
-                  }
-                  barCornerRadius={4}
-                  barFill={75}
-                  handleWidth={8}
-                  todayColor="rgba(99, 102, 241, 0.1)"
-                  TooltipContent={({ task }) => {
-                    const deployment = task.deployment
-                    if (!deployment) return null
-                    return (
-                      <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl max-w-xs">
-                        <div className="font-semibold mb-1">{deployment.productName}</div>
-                        <div className="text-sm text-slate-300 mb-2">{deployment.clientName}</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-slate-400">Status:</span>
-                            <span className="ml-1">{formatStatus(deployment.status)}</span>
+              {ganttTasks.length > 0 ? (
+                <div className={`gantt-container overflow-x-auto ${ganttFullscreen ? "flex-1" : ""}`}>
+                  <Gantt
+                    tasks={ganttTasks}
+                    viewMode={ganttViewMode}
+                    onDoubleClick={(task) => {
+                      window.location.href = `/deployments/${task.id}`
+                    }}
+                    listCellWidth=""
+                    columnWidth={
+                      ganttViewMode === ViewMode.Day ? 65 :
+                      ganttViewMode === ViewMode.Week ? 250 :
+                      ganttViewMode === ViewMode.Month ? 300 :
+                      500
+                    }
+                    barCornerRadius={4}
+                    barFill={75}
+                    handleWidth={8}
+                    todayColor="rgba(99, 102, 241, 0.1)"
+                    TooltipContent={({ task }) => {
+                      const deployment = task.deployment
+                      if (!deployment) return null
+                      return (
+                        <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl max-w-xs">
+                          <div className="font-semibold mb-1">{deployment.productName}</div>
+                          <div className="text-sm text-slate-300 mb-2">{deployment.clientName}</div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-slate-400">Status:</span>
+                              <span className="ml-1">{formatStatus(deployment.status)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Progress:</span>
+                              <span className="ml-1">{deployment.checklistProgress || 0}%</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Type:</span>
+                              <span className="ml-1">{formatDeploymentType(deployment.deploymentType)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Env:</span>
+                              <span className="ml-1">{formatEnvironment(deployment.environment)}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-slate-400">Progress:</span>
-                            <span className="ml-1">{deployment.checklistProgress || 0}%</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">Type:</span>
-                            <span className="ml-1">{formatDeploymentType(deployment.deploymentType)}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">Env:</span>
-                            <span className="ml-1">{formatEnvironment(deployment.environment)}</span>
+                          {(deployment.nextDeliveryDate || deployment.targetDate) && (
+                            <div className="mt-2 pt-2 border-t border-slate-700 text-xs">
+                              <span className="text-slate-400">Target:</span>
+                              <span className="ml-1">
+                                {formatDate(deployment.nextDeliveryDate || deployment.targetDate)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="mt-2 text-xs text-slate-400">
+                            Double-click to view details
                           </div>
                         </div>
-                        {(deployment.nextDeliveryDate || deployment.targetDate) && (
-                          <div className="mt-2 pt-2 border-t border-slate-700 text-xs">
-                            <span className="text-slate-400">Target:</span>
-                            <span className="ml-1">
-                              {new Date(deployment.nextDeliveryDate || deployment.targetDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
-                        <div className="mt-2 text-xs text-slate-400">
-                          Double-click to view details
-                        </div>
-                      </div>
-                    )
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <GanttChartSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>No deployments with dates to display</p>
-                <p className="text-sm mt-1">Add target dates to deployments to see them in the timeline</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      )
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <GanttChartSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>No deployments with dates to display</p>
+                  <p className="text-sm mt-1">Add target dates to deployments to see them in the timeline</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>

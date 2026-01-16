@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 
 module.exports = {
   name: "users",
-  mixins: [DbMixin("users")],
+  mixins: [DbMixin("users", ["name", "email"])],
 
   settings: {
     fields: ["id", "email", "name", "role", "assignedProductIds", "managedTeamIds",

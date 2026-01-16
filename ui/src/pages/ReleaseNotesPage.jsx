@@ -1,6 +1,7 @@
 import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { releaseNotesAPI, productsAPI, releaseNoteTemplatesAPI } from "@/services/api"
+import { formatDate } from "@/utils/dateFormat"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -149,7 +150,7 @@ function ReleaseCard({ release, products, onView, onEdit, onDelete, canEdit }) {
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           <Calendar className="h-4 w-4" />
-          <span>{new Date(release.releaseDate).toLocaleDateString()}</span>
+          <span>{formatDate(release.releaseDate)}</span>
         </div>
 
         {release.summary && (
@@ -620,7 +621,7 @@ export default function ReleaseNotesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(release.releaseDate).toLocaleDateString()}
+                        {formatDate(release.releaseDate)}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">

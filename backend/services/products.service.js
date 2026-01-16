@@ -5,7 +5,7 @@ const { DataTypes } = require("sequelize");
 
 module.exports = {
   name: "products",
-  mixins: [DbMixin("products")],
+  mixins: [DbMixin("products", ["name", "description"])],
 
   settings: {
     fields: ["id", "name", "description", "productOwner", "engineeringOwner",
@@ -105,10 +105,82 @@ module.exports = {
             const parent = await this.adapter.findById(ctx.params.parentId);
             if (parent) ctx.params.parentName = parent.name;
           }
+          // Store original for audit
+          if (ctx.params.id) {
+            ctx.locals = ctx.locals || {};
+            ctx.locals.originalEntity = await this.adapter.findById(ctx.params.id);
+          }
         }
       ]
     },
     after: {
+      create: [
+        async function(ctx, res) {
+          try {
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "create",
+              resourceType: "product",
+              resourceId: res.id,
+              resourceName: res.name,
+              metadata: { ipAddress: ctx.meta.ipAddress }
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
+          return res;
+        }
+      ],
+      update: [
+        async function(ctx, res) {
+          try {
+            const original = ctx.locals?.originalEntity;
+            const changes = [];
+            if (original) {
+              ["name", "description", "productOwner", "engineeringOwner", "deliveryLead"].forEach(field => {
+                if (original[field] !== res[field]) {
+                  changes.push({ field, oldValue: original[field], newValue: res[field] });
+                }
+              });
+            }
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "update",
+              resourceType: "product",
+              resourceId: res.id,
+              resourceName: res.name,
+              changes: changes.length > 0 ? changes : null,
+              metadata: { ipAddress: ctx.meta.ipAddress }
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
+          return res;
+        }
+      ],
+      remove: [
+        async function(ctx, res) {
+          try {
+            await ctx.call("audit.log", {
+              userId: ctx.meta.user?.id,
+              userName: ctx.meta.user?.name,
+              userEmail: ctx.meta.user?.email,
+              action: "delete",
+              resourceType: "product",
+              resourceId: ctx.params.id,
+              resourceName: "Product deleted",
+              metadata: { ipAddress: ctx.meta.ipAddress }
+            });
+          } catch (err) {
+            this.logger.warn("Failed to create audit log:", err.message);
+          }
+          return res;
+        }
+      ],
       list: [
         async function(ctx, res) {
           // Add deployment counts and sub-product counts to each product

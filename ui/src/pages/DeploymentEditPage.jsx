@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Rocket, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Rocket, Loader2, Save, Calendar, User } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 const environments = ["production", "sandbox", "qa"]
@@ -37,6 +37,8 @@ export default function DeploymentEditPage() {
     releaseItems: "",
     notes: "",
     version: "",
+    nextDeliveryDate: "",
+    ownerName: "",
   })
 
   const { data: deployment, isLoading } = useQuery({
@@ -66,6 +68,8 @@ export default function DeploymentEditPage() {
         releaseItems: deployment.releaseItems || "",
         notes: typeof deployment.notes === "string" ? deployment.notes : "",
         version: deployment.version || "",
+        nextDeliveryDate: deployment.nextDeliveryDate ? deployment.nextDeliveryDate.split("T")[0] : "",
+        ownerName: deployment.ownerName || "",
       })
     }
   }, [deployment])
@@ -248,6 +252,37 @@ export default function DeploymentEditPage() {
                   value={formData.version}
                   onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                   placeholder="e.g., 1.0.0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nextDeliveryDate" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-emerald-500" />
+                  Target Date
+                </Label>
+                <Input
+                  id="nextDeliveryDate"
+                  type="date"
+                  value={formData.nextDeliveryDate}
+                  onChange={(e) => setFormData({ ...formData, nextDeliveryDate: e.target.value })}
+                  disabled={formData.status === "Released"}
+                />
+                {formData.status === "Released" && (
+                  <p className="text-xs text-muted-foreground">Cannot change date for released deployments</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ownerName" className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-cyan-500" />
+                  Owner
+                </Label>
+                <Input
+                  id="ownerName"
+                  value={formData.ownerName}
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                  placeholder="Deployment owner name"
                 />
               </div>
             </div>
