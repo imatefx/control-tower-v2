@@ -73,6 +73,8 @@ import {
   Package,
   GanttChartSquare,
   ChevronRight,
+  ChevronDown,
+  FolderTree,
   User,
   ArrowRight,
   FlaskConical,
@@ -444,9 +446,287 @@ function KanbanColumn({ status, deployments, icon: Icon, color, onEdit, onDelete
   )
 }
 
+// Compact Client Deployment Card for Grouped View
+function ClientDeploymentCard({ deployment, onEdit, onDelete, canEdit }) {
+  const targetDate = deployment.nextDeliveryDate || deployment.targetDate
+  const days = getDaysUntil(targetDate)
+  const isReleased = deployment.status === "Released"
+  const isOverdue = days !== null && days < 0 && !isReleased
+  const isUrgent = days !== null && days >= 0 && days <= 7 && !isReleased
+
+  const statusColors = {
+    "Not Started": "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    "In Progress": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    "Blocked": "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",
+    "Released": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+  }
+
+  return (
+    <Card className={`group hover:shadow-md transition-all duration-200 ${
+      isOverdue ? "border-l-4 border-l-rose-500" : isUrgent ? "border-l-4 border-l-amber-500" : ""
+    }`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <Link to={`/deployments/${deployment.id}`} className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <Building className="h-4 w-4 text-amber-500 flex-shrink-0" />
+              <span className="font-medium text-sm truncate">{deployment.clientName}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[deployment.status] || statusColors["Not Started"]}`}>
+                {deployment.status || "Not Started"}
+              </span>
+              <Badge variant="outline" className="text-xs">
+                {formatEnvironment(deployment.environment)}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Progress value={deployment.checklistProgress || 0} className="h-1.5 w-16" />
+                <span>{deployment.checklistProgress || 0}%</span>
+              </div>
+              {targetDate && (
+                <div className={`flex items-center gap-1 ${
+                  isReleased ? "text-green-600" : isOverdue ? "text-rose-600" : isUrgent ? "text-amber-600" : ""
+                }`}>
+                  <Calendar className="h-3 w-3" />
+                  <span>{formatDate(targetDate)}</span>
+                </div>
+              )}
+            </div>
+          </Link>
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(deployment)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDelete(deployment)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Helper to sort deployments by upcoming date
+function sortByUpcoming(deploymentsList) {
+  return [...deploymentsList].sort((a, b) => {
+    // Released deployments go to the end
+    if (a.status === "Released" && b.status !== "Released") return 1
+    if (a.status !== "Released" && b.status === "Released") return -1
+
+    // Sort by target date
+    const dateA = a.nextDeliveryDate || a.targetDate
+    const dateB = b.nextDeliveryDate || b.targetDate
+
+    if (!dateA && !dateB) return 0
+    if (!dateA) return 1
+    if (!dateB) return -1
+
+    return new Date(dateA).getTime() - new Date(dateB).getTime()
+  })
+}
+
+// Sub-product Section for Grouped View
+function SubProductSection({ product, deployments, onEdit, onDelete, canEdit, defaultExpanded = true }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+  const sortedDeployments = sortByUpcoming(deployments)
+  const activeDeployments = deployments.filter(d => d.status !== "Released")
+
+  return (
+    <div className="border rounded-lg bg-card overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+          <Package className="h-4 w-4 text-blue-500" />
+          <span className="font-medium text-sm">{product.name}</span>
+          <Badge variant="secondary" className="text-xs">
+            {deployments.length} deployment{deployments.length !== 1 ? "s" : ""}
+          </Badge>
+          {activeDeployments.length > 0 && (
+            <Badge variant="info" className="text-xs">
+              {activeDeployments.length} active
+            </Badge>
+          )}
+        </div>
+        <Link
+          to={`/products/${product.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-xs text-primary hover:underline"
+        >
+          View Product
+        </Link>
+      </button>
+      {isExpanded && (
+        <div className="p-3 pt-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedDeployments.map((deployment) => (
+            <ClientDeploymentCard
+              key={deployment.id}
+              deployment={deployment}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              canEdit={canEdit}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Parent Product Group for Grouped View
+function ParentProductGroup({ product, subProducts, deployments, allDeployments, onEdit, onDelete, canEdit }) {
+  const [isExpanded, setIsExpanded] = useState(true)
+
+  // Direct deployments for this parent product (sorted by upcoming)
+  const directDeployments = sortByUpcoming(deployments.filter(d => d.productId === product.id))
+
+  // Get deployments for each sub-product
+  const subProductDeployments = subProducts.reduce((acc, subProduct) => {
+    acc[subProduct.id] = allDeployments.filter(d => d.productId === subProduct.id)
+    return acc
+  }, {})
+
+  // Sort sub-products by earliest upcoming deployment date
+  const sortedSubProducts = [...subProducts].sort((a, b) => {
+    const deploymentsA = subProductDeployments[a.id] || []
+    const deploymentsB = subProductDeployments[b.id] || []
+
+    const getEarliest = (deps) => {
+      const active = deps.filter(d => d.status !== "Released")
+      if (active.length === 0) return Infinity
+      const dates = active.map(d => d.nextDeliveryDate || d.targetDate).filter(Boolean).map(d => new Date(d).getTime())
+      return dates.length > 0 ? Math.min(...dates) : Infinity
+    }
+
+    return getEarliest(deploymentsA) - getEarliest(deploymentsB)
+  })
+
+  // Total count including sub-products
+  const totalDeployments = directDeployments.length +
+    subProducts.reduce((sum, sp) => sum + (subProductDeployments[sp.id]?.length || 0), 0)
+
+  const activeCount = directDeployments.filter(d => d.status !== "Released").length +
+    subProducts.reduce((sum, sp) =>
+      sum + (subProductDeployments[sp.id]?.filter(d => d.status !== "Released")?.length || 0), 0)
+
+  if (totalDeployments === 0) return null
+
+  return (
+    <div className="border-2 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-800/50 overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {isExpanded ? (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          )}
+          <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+            <Package className="h-5 w-5 text-white" />
+          </div>
+          <div className="text-left">
+            <span className="font-semibold text-base">{product.name}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-muted-foreground">
+                {totalDeployments} deployment{totalDeployments !== 1 ? "s" : ""}
+              </span>
+              {subProducts.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  • {subProducts.length} sub-product{subProducts.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {activeCount > 0 && (
+                <Badge variant="info" className="text-xs">
+                  {activeCount} active
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        <Link
+          to={`/products/${product.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm text-primary hover:underline font-medium"
+        >
+          View Product
+        </Link>
+      </button>
+
+      {isExpanded && (
+        <div className="p-4 pt-0 space-y-4">
+          {/* Direct deployments for parent product */}
+          {directDeployments.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-1">
+                Direct Deployments
+              </h4>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {directDeployments.map((deployment) => (
+                  <ClientDeploymentCard
+                    key={deployment.id}
+                    deployment={deployment}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    canEdit={canEdit}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sub-products with their deployments (sorted by upcoming) */}
+          {sortedSubProducts.map((subProduct) => {
+            const subDeployments = subProductDeployments[subProduct.id] || []
+            if (subDeployments.length === 0) return null
+            return (
+              <SubProductSection
+                key={subProduct.id}
+                product={subProduct}
+                deployments={subDeployments}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                canEdit={canEdit}
+              />
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DeploymentsPage() {
   const [search, setSearch] = useState("")
-  const [view, setView] = useState("cards") // Default to cards
+  const [view, setView] = useState("grouped") // Default to grouped
   const [statusFilter, setStatusFilter] = useState("all")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formStep, setFormStep] = useState(1) // Step 1: type, Step 2: details
@@ -768,6 +1048,54 @@ export default function DeploymentsPage() {
       })
       .sort((a, b) => a.start - b.start)
   }, [deployments?.rows])
+
+  // Helper to get earliest upcoming date for sorting
+  const getEarliestUpcomingDate = (deploymentsList) => {
+    const activeDeployments = deploymentsList.filter(d => d.status !== "Released")
+    if (activeDeployments.length === 0) return Infinity
+
+    const dates = activeDeployments
+      .map(d => d.nextDeliveryDate || d.targetDate)
+      .filter(Boolean)
+      .map(d => new Date(d).getTime())
+
+    return dates.length > 0 ? Math.min(...dates) : Infinity
+  }
+
+  // Group deployments by product hierarchy for grouped view
+  const groupedProductHierarchy = useMemo(() => {
+    if (!products?.rows || !filteredDeployments) return []
+
+    // Get parent products (no parentId)
+    const parentProducts = products.rows.filter(p => !p.parentId)
+
+    // Build hierarchy with sorted deployments
+    const groups = parentProducts.map(parent => {
+      const subProducts = products.rows.filter(p => p.parentId === parent.id)
+
+      // Get all deployments for this parent and its sub-products
+      const parentDeployments = filteredDeployments.filter(d => d.productId === parent.id)
+      const allSubProductIds = subProducts.map(sp => sp.id)
+      const subProductDeployments = filteredDeployments.filter(d => allSubProductIds.includes(d.productId))
+      const allGroupDeployments = [...parentDeployments, ...subProductDeployments]
+
+      return {
+        parent,
+        subProducts,
+        earliestDate: getEarliestUpcomingDate(allGroupDeployments),
+      }
+    }).filter(group => {
+      // Only include groups that have deployments
+      const parentHasDeployments = filteredDeployments.some(d => d.productId === group.parent.id)
+      const subProductsHaveDeployments = group.subProducts.some(sp =>
+        filteredDeployments.some(d => d.productId === sp.id)
+      )
+      return parentHasDeployments || subProductsHaveDeployments
+    })
+
+    // Sort groups by earliest upcoming deployment date
+    return groups.sort((a, b) => a.earliestDate - b.earliestDate)
+  }, [products?.rows, filteredDeployments])
 
   return (
     <div className="space-y-6">
@@ -1331,7 +1659,7 @@ export default function DeploymentsPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          {(view === "list" || view === "cards") && (
+          {(view === "list" || view === "cards" || view === "grouped") && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Filter status" />
@@ -1348,6 +1676,18 @@ export default function DeploymentsPage() {
             </Select>
           )}
           <div className="flex gap-1 p-1 bg-muted rounded-lg">
+            <Button
+              variant={view === "grouped" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setView("grouped")
+                toast.info("Switched to grouped view")
+              }}
+              className="gap-2"
+            >
+              <FolderTree className="h-4 w-4" />
+              Grouped
+            </Button>
             <Button
               variant={view === "cards" ? "default" : "ghost"}
               size="sm"
@@ -1562,6 +1902,33 @@ export default function DeploymentsPage() {
               canEdit={canEdit()}
             />
           ))}
+        </div>
+      ) : view === "grouped" ? (
+        /* Grouped by Product View */
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+            <FolderTree className="h-4 w-4" />
+            <span>Showing deployments grouped by product hierarchy</span>
+          </div>
+          {groupedProductHierarchy.length > 0 ? (
+            groupedProductHierarchy.map((group) => (
+              <ParentProductGroup
+                key={group.parent.id}
+                product={group.parent}
+                subProducts={group.subProducts}
+                deployments={filteredDeployments}
+                allDeployments={filteredDeployments}
+                onEdit={openEditDialog}
+                onDelete={(d) => setDeleteDialog({ open: true, deployment: d })}
+                canEdit={canEdit()}
+              />
+            ))
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <FolderTree className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>No deployments found</p>
+            </div>
+          )}
         </div>
       ) : (
         /* Gantt View */

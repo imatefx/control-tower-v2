@@ -67,7 +67,6 @@ import {
   Layers,
   Users,
   GitBranch,
-  Calendar,
   FileText,
   ChevronRight,
   Filter,
@@ -271,11 +270,6 @@ export default function ProductsPage() {
     queryFn: () => productsAPI.list({ type: "main" }),
   })
 
-  const { data: upcomingProducts } = useQuery({
-    queryKey: ["products", "upcoming-releases"],
-    queryFn: () => productsAPI.getUpcomingReleases(30),
-  })
-
   // Filter products based on selection
   const filteredProducts = useMemo(() => {
     if (!products?.rows) return []
@@ -283,12 +277,9 @@ export default function ProductsPage() {
       return products.rows.filter(p => !p.parentId)
     } else if (productFilter === "sub") {
       return products.rows.filter(p => p.parentId)
-    } else if (productFilter === "upcoming") {
-      const upcomingProductIds = new Set(upcomingProducts?.map(p => p.productId) || [])
-      return products.rows.filter(p => upcomingProductIds.has(p.id))
     }
     return products.rows
-  }, [products?.rows, productFilter, upcomingProducts])
+  }, [products?.rows, productFilter])
 
   const createMutation = useMutation({
     mutationFn: productsAPI.create,
@@ -664,19 +655,6 @@ export default function ProductsPage() {
             >
               All
               <Badge variant="secondary" className="ml-1 h-5 px-1.5">{totalCount}</Badge>
-            </Button>
-            <Button
-              variant={productFilter === "upcoming" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => {
-                setProductFilter("upcoming")
-                toast.info("Showing upcoming releases")
-              }}
-              className="gap-1"
-            >
-              <Calendar className="h-3.5 w-3.5" />
-              Upcoming
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5">{upcomingProducts?.length || 0}</Badge>
             </Button>
           </div>
         </div>
