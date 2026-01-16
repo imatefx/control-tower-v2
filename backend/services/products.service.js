@@ -87,6 +87,59 @@ module.exports = {
         const products = await this.adapter.find({});
         return products.filter(p => p.eap && p.eap.isActive);
       }
+    },
+
+    // Get products with upcoming releases (deployments within next N days)
+    getWithUpcomingReleases: {
+      params: {
+        days: { type: "number", optional: true, default: 30 }
+      },
+      async handler(ctx) {
+        const { days } = ctx.params;
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+
+        // Get all deployments with upcoming dates
+        const deployments = await ctx.call("deployments.find", {});
+        const upcomingDeployments = deployments.filter(d =>
+          d.nextDeliveryDate &&
+          new Date(d.nextDeliveryDate) >= today &&
+          new Date(d.nextDeliveryDate) <= futureDate &&
+          d.status !== "Released"
+        );
+
+        // Group by product
+        const productMap = {};
+        for (const dep of upcomingDeployments) {
+          if (!productMap[dep.productId]) {
+            productMap[dep.productId] = {
+              productId: dep.productId,
+              productName: dep.productName,
+              upcomingDeployments: []
+            };
+          }
+          productMap[dep.productId].upcomingDeployments.push({
+            id: dep.id,
+            clientName: dep.clientName,
+            nextDeliveryDate: dep.nextDeliveryDate,
+            status: dep.status,
+            environment: dep.environment,
+            featureName: dep.featureName
+          });
+        }
+
+        // Sort deployments by date within each product
+        const results = Object.values(productMap).map(p => ({
+          ...p,
+          upcomingDeployments: p.upcomingDeployments.sort(
+            (a, b) => new Date(a.nextDeliveryDate) - new Date(b.nextDeliveryDate)
+          ),
+          nextReleaseDate: p.upcomingDeployments[0]?.nextDeliveryDate
+        }));
+
+        // Sort products by earliest release date
+        return results.sort((a, b) => new Date(a.nextReleaseDate) - new Date(b.nextReleaseDate));
+      }
     }
   },
 

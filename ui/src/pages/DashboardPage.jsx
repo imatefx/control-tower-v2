@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { reportsAPI, deploymentsAPI } from "@/services/api"
+import { reportsAPI, deploymentsAPI, productsAPI } from "@/services/api"
 import { formatDate } from "@/utils/dateFormat"
 import {
   Package,
@@ -268,6 +268,11 @@ export default function DashboardPage() {
   const { data: deployments } = useQuery({
     queryKey: ["all-deployments"],
     queryFn: () => deploymentsAPI.list({ pageSize: 100 }),
+  })
+
+  const { data: productsWithUpcoming } = useQuery({
+    queryKey: ["products-upcoming-releases"],
+    queryFn: () => productsAPI.getUpcomingReleases(30),
   })
 
   if (metricsLoading) {
@@ -628,6 +633,71 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Products with Upcoming Releases */}
+      {productsWithUpcoming && productsWithUpcoming.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-indigo-500" />
+                Products with Upcoming Releases
+              </CardTitle>
+              <Badge variant="secondary">{productsWithUpcoming.length} products</Badge>
+            </div>
+            <CardDescription>Products scheduled for release in the next 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {productsWithUpcoming.slice(0, 6).map((product) => (
+                <Link key={product.productId} to={`/products/${product.productId}`}>
+                  <Card className="hover:shadow-md transition-all hover:border-primary/30 cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="font-semibold text-sm mb-2 line-clamp-1">{product.productName}</div>
+                      <div className="space-y-2">
+                        {product.upcomingDeployments.slice(0, 3).map((dep) => (
+                          <div key={dep.id} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground truncate max-w-[120px]">
+                              {dep.clientName || dep.featureName || "Deployment"}
+                            </span>
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {formatDate(dep.nextDeliveryDate)}
+                            </Badge>
+                          </div>
+                        ))}
+                        {product.upcomingDeployments.length > 3 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{product.upcomingDeployments.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 pt-2 border-t flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {product.upcomingDeployments.length} release{product.upcomingDeployments.length !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-xs font-medium text-primary">
+                          Next: {formatDate(product.nextReleaseDate)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+            {productsWithUpcoming.length > 6 && (
+              <div className="mt-4 text-center">
+                <Link
+                  to="/products?filter=upcoming"
+                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  View all {productsWithUpcoming.length} products
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

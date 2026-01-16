@@ -184,6 +184,29 @@ module.exports = {
           d.status !== "Released"
         );
       }
+    },
+
+    // Get deployments for a product including its sub-products
+    getByProductWithChildren: {
+      params: { productId: "string" },
+      async handler(ctx) {
+        const { productId } = ctx.params;
+
+        // Get child products
+        const children = await ctx.call("products.find", { query: { parentId: productId } });
+        const childIds = children.map(c => c.id);
+
+        // Get all product IDs (parent + children)
+        const allProductIds = [productId, ...childIds];
+
+        // Fetch deployments for all products
+        const { Op } = require("sequelize");
+        const deployments = await this.adapter.find({
+          query: { productId: { [Op.in]: allProductIds } }
+        });
+
+        return { rows: deployments, total: deployments.length };
+      }
     }
   },
 

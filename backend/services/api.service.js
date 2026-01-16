@@ -52,6 +52,7 @@ module.exports = {
           "PUT /products/:id": "products.update",
           "DELETE /products/:id": "products.remove",
           "GET /products/eap/active": "products.getEapProducts",
+          "GET /products/upcoming-releases": "products.getWithUpcomingReleases",
 
           // Clients
           "GET /clients": "clients.list",
@@ -74,6 +75,7 @@ module.exports = {
           "GET /deployments/status/:status": "deployments.getByStatus",
           "GET /deployments/overdue": "deployments.getOverdue",
           "GET /deployments/upcoming": "deployments.getUpcoming",
+          "GET /deployments/product/:productId/with-children": "deployments.getByProductWithChildren",
 
           // Checklists
           "GET /checklists/deployment/:deploymentId": "checklists.getByDeployment",

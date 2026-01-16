@@ -21,6 +21,22 @@ const environments = ["production", "sandbox", "qa"]
 const statuses = ["Not Started", "In Progress", "Blocked", "Released"]
 const deploymentTypes = ["ga", "eap", "feature-release", "client-specific"]
 
+// Convert ISO date (yyyy-mm-dd) to mm/dd/yyyy
+const isoToDisplay = (isoDate) => {
+  if (!isoDate) return ""
+  const [year, month, day] = isoDate.split("T")[0].split("-")
+  return `${month}/${day}/${year}`
+}
+
+// Convert mm/dd/yyyy to ISO date (yyyy-mm-dd)
+const displayToIso = (displayDate) => {
+  if (!displayDate) return ""
+  const parts = displayDate.split("/")
+  if (parts.length !== 3) return ""
+  const [month, day, year] = parts
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+}
+
 export default function DeploymentEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -68,7 +84,7 @@ export default function DeploymentEditPage() {
         releaseItems: deployment.releaseItems || "",
         notes: typeof deployment.notes === "string" ? deployment.notes : "",
         version: deployment.version || "",
-        nextDeliveryDate: deployment.nextDeliveryDate ? deployment.nextDeliveryDate.split("T")[0] : "",
+        nextDeliveryDate: deployment.nextDeliveryDate ? isoToDisplay(deployment.nextDeliveryDate) : "",
         ownerName: deployment.ownerName || "",
       })
     }
@@ -85,7 +101,14 @@ export default function DeploymentEditPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    updateMutation.mutate(formData)
+    // Convert empty strings to null for UUID fields, and date to ISO format
+    const payload = {
+      ...formData,
+      productId: formData.productId || null,
+      clientId: formData.clientId || null,
+      nextDeliveryDate: displayToIso(formData.nextDeliveryDate) || null,
+    }
+    updateMutation.mutate(payload)
   }
 
   if (isLoading) {
@@ -264,9 +287,10 @@ export default function DeploymentEditPage() {
                 </Label>
                 <Input
                   id="nextDeliveryDate"
-                  type="date"
+                  type="text"
                   value={formData.nextDeliveryDate}
                   onChange={(e) => setFormData({ ...formData, nextDeliveryDate: e.target.value })}
+                  placeholder="mm/dd/yyyy"
                   disabled={formData.status === "Released"}
                 />
                 {formData.status === "Released" && (

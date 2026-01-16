@@ -68,6 +68,7 @@ export const productsAPI = {
   delete: (id) => api.delete(`/products/${id}`),
   restore: (id) => api.put(`/products/${id}/restore`),
   getEAP: () => api.get('/products/eap/active'),
+  getUpcomingReleases: (days = 30) => api.get('/products/upcoming-releases', { params: { days } }),
 }
 
 // Clients
@@ -94,6 +95,7 @@ export const deploymentsAPI = {
   updateStatus: (id, status, blockedComment) =>
     api.put(`/deployments/${id}/status`, { status, blockedComment }),
   getByStatus: (status) => api.get('/deployments/by-status', { params: { status } }),
+  getByProductWithChildren: (productId) => api.get(`/deployments/product/${productId}/with-children`),
 }
 
 // Checklists

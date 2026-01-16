@@ -65,8 +65,8 @@ export default function ProductDetailPage() {
   })
 
   const { data: deployments } = useQuery({
-    queryKey: ["deployments", "product", id],
-    queryFn: () => deploymentsAPI.list({ productId: id }),
+    queryKey: ["deployments", "product", id, "with-children"],
+    queryFn: () => deploymentsAPI.getByProductWithChildren(id),
   })
 
   const { data: childProducts } = useQuery({
@@ -232,6 +232,56 @@ export default function ProductDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Upcoming Releases - Next 30 days */}
+      {(() => {
+        const upcomingDeployments = (deployments?.rows || []).filter(d => {
+          if (!d.nextDeliveryDate || d.status === "Released") return false
+          const deliveryDate = new Date(d.nextDeliveryDate)
+          const today = new Date()
+          const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+          return deliveryDate >= today && deliveryDate <= thirtyDaysLater
+        }).sort((a, b) => new Date(a.nextDeliveryDate) - new Date(b.nextDeliveryDate))
+
+        if (upcomingDeployments.length === 0) return null
+
+        return (
+          <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Calendar className="h-5 w-5" />
+                Upcoming Releases (Next 30 Days)
+              </CardTitle>
+              <CardDescription>{upcomingDeployments.length} deployment{upcomingDeployments.length !== 1 ? "s" : ""} scheduled</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingDeployments.slice(0, 5).map(dep => (
+                  <Link key={dep.id} to={`/deployments/${dep.id}`}>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-slate-800 border hover:border-blue-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div>
+                          <div className="font-medium text-sm">{dep.clientName}</div>
+                          <div className="text-xs text-muted-foreground">{dep.featureName || dep.environment}</div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {formatDate(dep.nextDeliveryDate)}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+                {upcomingDeployments.length > 5 && (
+                  <div className="text-sm text-muted-foreground text-center">
+                    +{upcomingDeployments.length - 5} more upcoming
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* EAP Section */}
       {isEapActive && (
