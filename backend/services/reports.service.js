@@ -242,6 +242,122 @@ module.exports = {
             deliveryPerson: d.deliveryPerson
           }));
       }
+    },
+
+    /**
+     * Get Client-Product Overview for Dashboard
+     * Returns aggregated data showing client-product relationships with deployment stats
+     */
+    getClientProductOverview: {
+      async handler(ctx) {
+        const [clientsRes, productsRes, deployments] = await Promise.all([
+          ctx.call("clients.list", { pageSize: 500 }),
+          ctx.call("products.list", { pageSize: 500 }),
+          ctx.call("deployments.find", {})
+        ]);
+
+        const clients = clientsRes.rows || [];
+        const products = productsRes.rows || [];
+
+        // Create product lookup map
+        const productMap = {};
+        products.forEach(p => {
+          productMap[p.id] = p;
+        });
+
+        // Build client-centric view
+        const byClient = clients.map(client => {
+          const clientProductIds = client.productIds || [];
+          const clientProducts = clientProductIds
+            .map(productId => {
+              const product = productMap[productId];
+              if (!product) return null;
+
+              // Get deployments for this client-product pair
+              const pairDeployments = deployments.filter(
+                d => d.clientId === client.id && d.productId === productId
+              );
+
+              return {
+                productId: product.id,
+                productName: product.name,
+                isEap: product.eap?.isActive || false,
+                productOwner: product.productOwner,
+                deliveryLead: product.deliveryLead,
+                deploymentCount: pairDeployments.length,
+                statusBreakdown: {
+                  notStarted: pairDeployments.filter(d => d.status === "Not Started").length,
+                  inProgress: pairDeployments.filter(d => d.status === "In Progress").length,
+                  blocked: pairDeployments.filter(d => d.status === "Blocked").length,
+                  released: pairDeployments.filter(d => d.status === "Released").length
+                }
+              };
+            })
+            .filter(Boolean);
+
+          const totalDeployments = clientProducts.reduce((sum, p) => sum + p.deploymentCount, 0);
+
+          return {
+            clientId: client.id,
+            clientName: client.name,
+            cdgOwner: client.cdgOwner,
+            productCount: clientProducts.length,
+            totalDeployments,
+            products: clientProducts
+          };
+        }).filter(c => c.productCount > 0); // Only include clients with products
+
+        // Build product-centric view
+        const byProduct = products.map(product => {
+          const productClients = clients.filter(
+            c => (c.productIds || []).includes(product.id)
+          );
+
+          const productDeployments = deployments.filter(d => d.productId === product.id);
+
+          const clientsWithStats = productClients.map(client => {
+            const clientDeployments = productDeployments.filter(d => d.clientId === client.id);
+            return {
+              clientId: client.id,
+              clientName: client.name,
+              deploymentCount: clientDeployments.length,
+              latestStatus: clientDeployments.length > 0
+                ? clientDeployments.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0].status
+                : null
+            };
+          });
+
+          return {
+            productId: product.id,
+            productName: product.name,
+            isEap: product.eap?.isActive || false,
+            productOwner: product.productOwner,
+            deliveryLead: product.deliveryLead,
+            clientCount: clientsWithStats.length,
+            totalDeployments: productDeployments.length,
+            statusBreakdown: {
+              notStarted: productDeployments.filter(d => d.status === "Not Started").length,
+              inProgress: productDeployments.filter(d => d.status === "In Progress").length,
+              blocked: productDeployments.filter(d => d.status === "Blocked").length,
+              released: productDeployments.filter(d => d.status === "Released").length
+            },
+            clients: clientsWithStats
+          };
+        }).filter(p => p.clientCount > 0); // Only include products with clients
+
+        // Summary stats
+        const summary = {
+          totalClients: clients.length,
+          totalProducts: products.length,
+          totalDeployments: deployments.length,
+          clientsWithProducts: byClient.length,
+          productsWithClients: byProduct.length,
+          activeDeployments: deployments.filter(d => d.status === "In Progress").length,
+          blockedDeployments: deployments.filter(d => d.status === "Blocked").length
+        };
+
+        return { byClient, byProduct, summary };
+      }
     }
   }
 };

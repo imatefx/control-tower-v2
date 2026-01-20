@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { configAPI } from "@/services/api"
+import { configAPI, alertsAPI } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { toast } from "@/hooks/useToast"
@@ -34,6 +34,8 @@ import {
   Mail,
   Lock,
   CheckCircle,
+  MessageSquare,
+  TestTube,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -55,6 +57,18 @@ export default function SettingsPage() {
     approvalRequests: true,
     weeklyDigest: false,
   })
+
+  const [alertSettings, setAlertSettings] = useState({
+    globalEnabled: true,
+    smtpHost: "",
+    smtpPort: "587",
+    smtpUser: "",
+    smtpFrom: "",
+    googleChatWebhookUrl: "",
+  })
+
+  const [testingEmail, setTestingEmail] = useState(false)
+  const [testingChat, setTestingChat] = useState(false)
 
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ["config"],
@@ -94,6 +108,46 @@ export default function SettingsPage() {
     { value: "system", label: "System", icon: Monitor },
   ]
 
+  const handleTestEmail = async () => {
+    const email = prompt("Enter email address to send test notification:")
+    if (!email) return
+
+    setTestingEmail(true)
+    try {
+      await alertsAPI.testEmail(email)
+      toast.success("Test email sent successfully")
+    } catch (error) {
+      toast.error("Failed to send test email: " + (error.message || "Unknown error"))
+    } finally {
+      setTestingEmail(false)
+    }
+  }
+
+  const handleTestGoogleChat = async () => {
+    if (!alertSettings.googleChatWebhookUrl) {
+      toast.error("Please enter a Google Chat webhook URL first")
+      return
+    }
+
+    setTestingChat(true)
+    try {
+      await alertsAPI.testGoogleChat(alertSettings.googleChatWebhookUrl)
+      toast.success("Test message sent to Google Chat")
+    } catch (error) {
+      toast.error("Failed to send test message: " + (error.message || "Unknown error"))
+    } finally {
+      setTestingChat(false)
+    }
+  }
+
+  const handleSaveAlertSettings = () => {
+    // Save to config API
+    Object.entries(alertSettings).forEach(([key, value]) => {
+      updateConfigMutation.mutate({ key: `alerts.${key}`, value: String(value) })
+    })
+    toast.success("Alert settings saved")
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -123,10 +177,16 @@ export default function SettingsPage() {
             Notifications
           </TabsTrigger>
           {isAdmin() && (
-            <TabsTrigger value="system" className="gap-2">
-              <Database className="h-4 w-4" />
-              System
-            </TabsTrigger>
+            <>
+              <TabsTrigger value="alerts" className="gap-2">
+                <Bell className="h-4 w-4" />
+                Alerts
+              </TabsTrigger>
+              <TabsTrigger value="system" className="gap-2">
+                <Database className="h-4 w-4" />
+                System
+              </TabsTrigger>
+            </>
           )}
         </TabsList>
 
@@ -340,6 +400,152 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isAdmin() && (
+          <TabsContent value="alerts" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-blue-500" />
+                  Email Configuration
+                </CardTitle>
+                <CardDescription>Configure SMTP settings for email alerts</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Email Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Send email notifications for deployment events
+                    </p>
+                  </div>
+                  <Switch
+                    checked={alertSettings.globalEnabled}
+                    onCheckedChange={(checked) =>
+                      setAlertSettings({ ...alertSettings, globalEnabled: checked })
+                    }
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpHost">SMTP Host</Label>
+                    <Input
+                      id="smtpHost"
+                      placeholder="smtp.gmail.com"
+                      value={alertSettings.smtpHost}
+                      onChange={(e) =>
+                        setAlertSettings({ ...alertSettings, smtpHost: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpPort">SMTP Port</Label>
+                    <Input
+                      id="smtpPort"
+                      placeholder="587"
+                      value={alertSettings.smtpPort}
+                      onChange={(e) =>
+                        setAlertSettings({ ...alertSettings, smtpPort: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpUser">SMTP User</Label>
+                    <Input
+                      id="smtpUser"
+                      placeholder="user@example.com"
+                      value={alertSettings.smtpUser}
+                      onChange={(e) =>
+                        setAlertSettings({ ...alertSettings, smtpUser: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpFrom">From Address</Label>
+                    <Input
+                      id="smtpFrom"
+                      placeholder="noreply@example.com"
+                      value={alertSettings.smtpFrom}
+                      onChange={(e) =>
+                        setAlertSettings({ ...alertSettings, smtpFrom: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  SMTP password should be set via environment variable (SMTP_PASS)
+                </p>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestEmail}
+                  disabled={testingEmail}
+                >
+                  {testingEmail ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4 mr-2" />
+                  )}
+                  Send Test Email
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-green-500" />
+                  Google Chat Configuration
+                </CardTitle>
+                <CardDescription>Configure default Google Chat webhook for alerts</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="googleChatWebhookUrl">Default Webhook URL</Label>
+                  <Input
+                    id="googleChatWebhookUrl"
+                    type="url"
+                    placeholder="https://chat.googleapis.com/v1/spaces/..."
+                    value={alertSettings.googleChatWebhookUrl}
+                    onChange={(e) =>
+                      setAlertSettings({ ...alertSettings, googleChatWebhookUrl: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This webhook will be used as the fallback for products/deployments without a specific webhook
+                  </p>
+                </div>
+
+                {alertSettings.googleChatWebhookUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestGoogleChat}
+                    disabled={testingChat}
+                  >
+                    {testingChat ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <TestTube className="h-4 w-4 mr-2" />
+                    )}
+                    Send Test Message
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            <Button onClick={handleSaveAlertSettings}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Alert Settings
+            </Button>
+          </TabsContent>
+        )}
 
         {isAdmin() && (
           <TabsContent value="system" className="mt-6">

@@ -53,6 +53,8 @@ module.exports = {
           "DELETE /products/:id": "products.remove",
           "GET /products/eap/active": "products.getEapProducts",
           "GET /products/upcoming-releases": "products.getWithUpcomingReleases",
+          "POST /products/:id/documentation": "products.addDocumentation",
+          "DELETE /products/:id/documentation/:docId": "products.removeDocumentation",
 
           // Clients
           "GET /clients": "clients.list",
@@ -134,6 +136,12 @@ module.exports = {
           "POST /config/doc-types": "config.setDocTypes",
           "POST /config/deployment-doc-types": "config.setDeploymentDocTypes",
 
+          // Alerts
+          "POST /alerts/send": "alerts.send",
+          "POST /alerts/test-email": "alerts.testEmail",
+          "POST /alerts/test-google-chat": "alerts.testGoogleChat",
+          "GET /alerts/recipients/:deploymentId": "alerts.getRecipients",
+
           // Reports
           "GET /reports/dashboard": "reports.getDashboardMetrics",
           "GET /reports/deployments": "reports.getDeploymentReport",
@@ -143,6 +151,7 @@ module.exports = {
           "GET /reports/team-performance": "reports.getTeamPerformance",
           "GET /reports/client-health": "reports.getClientHealth",
           "GET /reports/upcoming-releases": "reports.getUpcomingReleases",
+          "GET /reports/client-product-overview": "reports.getClientProductOverview",
 
           // Engineering
           "GET /engineering/dashboard": "engineering.getDashboard",

@@ -69,6 +69,8 @@ export const productsAPI = {
   restore: (id) => api.put(`/products/${id}/restore`),
   getEAP: () => api.get('/products/eap/active'),
   getUpcomingReleases: (days = 30) => api.get('/products/upcoming-releases', { params: { days } }),
+  addDocumentation: (id, data) => api.post(`/products/${id}/documentation`, data),
+  removeDocumentation: (id, docId) => api.delete(`/products/${id}/documentation/${docId}`),
 }
 
 // Clients
@@ -151,6 +153,7 @@ export const reportsAPI = {
   getDeploymentReport: (params) => api.get('/reports/deployments', { params }),
   getClientReport: (params) => api.get('/reports/clients', { params }),
   getProductReport: (params) => api.get('/reports/products', { params }),
+  getClientProductOverview: () => api.get('/reports/client-product-overview'),
 }
 
 // Engineering
@@ -188,6 +191,14 @@ export const configAPI = {
   list: () => api.get('/config'),
   get: (key) => api.get(`/config/${key}`),
   update: (key, value) => api.put(`/config/${key}`, { value }),
+}
+
+// Alerts
+export const alertsAPI = {
+  send: (deploymentId, eventType, eventData) => api.post('/alerts/send', { deploymentId, eventType, eventData }),
+  testEmail: (email) => api.post('/alerts/test-email', { email }),
+  testGoogleChat: (webhookUrl) => api.post('/alerts/test-google-chat', { webhookUrl }),
+  getRecipients: (deploymentId) => api.get(`/alerts/recipients/${deploymentId}`),
 }
 
 export default api

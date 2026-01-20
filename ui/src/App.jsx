@@ -28,6 +28,7 @@ import SettingsPage from "@/pages/SettingsPage"
 import TrashPage from "@/pages/TrashPage"
 import ChecklistItemsPage from "@/pages/ChecklistItemsPage"
 import ShareholderDashboardPage from "@/pages/ShareholderDashboardPage"
+import ClientProductOverviewPage from "@/pages/ClientProductOverviewPage"
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, hasRole, loading } = useAuth()
@@ -88,6 +89,8 @@ function App() {
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="clients/:id/edit" element={<ClientEditPage />} />
+
+        <Route path="client-product-overview" element={<ClientProductOverviewPage />} />
 
         <Route path="deployments" element={<DeploymentsPage />} />
         <Route path="deployments/:id" element={<DeploymentDetailPage />} />

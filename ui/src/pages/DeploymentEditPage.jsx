@@ -14,9 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Rocket, Loader2, Save, Calendar, User } from "lucide-react"
+import { ArrowLeft, Rocket, Loader2, Save, Calendar, User, Bell } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "@/hooks/useToast"
+import AlertConfigForm from "@/components/AlertConfigForm"
 
 const environments = ["production", "sandbox", "qa"]
 const statuses = ["Not Started", "In Progress", "Blocked", "Released"]
@@ -56,6 +57,26 @@ export default function DeploymentEditPage() {
     version: "",
     nextDeliveryDate: "",
     ownerName: "",
+    alertConfig: {
+      enabled: true,
+      notifyProductOwners: true,
+      notifyEngineeringOwners: true,
+      notifyDeliveryLead: true,
+      additionalEmails: [],
+      googleChat: {
+        enabled: false,
+        webhookUrl: "",
+        useProductWebhook: true,
+      },
+      events: {
+        onCreated: true,
+        onStatusChange: true,
+        onBlocked: true,
+        onReleased: true,
+        onApproaching: true,
+        onOverdue: true,
+      },
+    },
   })
 
   const { data: deployment, isLoading } = useQuery({
@@ -87,6 +108,26 @@ export default function DeploymentEditPage() {
         version: deployment.version || "",
         nextDeliveryDate: deployment.nextDeliveryDate ? isoToDisplay(deployment.nextDeliveryDate) : "",
         ownerName: deployment.ownerName || "",
+        alertConfig: deployment.alertConfig || {
+          enabled: true,
+          notifyProductOwners: true,
+          notifyEngineeringOwners: true,
+          notifyDeliveryLead: true,
+          additionalEmails: [],
+          googleChat: {
+            enabled: false,
+            webhookUrl: "",
+            useProductWebhook: true,
+          },
+          events: {
+            onCreated: true,
+            onStatusChange: true,
+            onBlocked: true,
+            onReleased: true,
+            onApproaching: true,
+            onOverdue: true,
+          },
+        },
       })
     }
   }, [deployment])
@@ -112,8 +153,13 @@ export default function DeploymentEditPage() {
       productId: formData.productId || null,
       clientId: formData.clientId || null,
       nextDeliveryDate: displayToIso(formData.nextDeliveryDate) || null,
+      alertConfig: formData.alertConfig,
     }
     updateMutation.mutate(payload)
+  }
+
+  const handleAlertConfigChange = (config) => {
+    setFormData({ ...formData, alertConfig: config })
   }
 
   if (isLoading) {
@@ -359,6 +405,28 @@ export default function DeploymentEditPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Alerts & Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Alerts & Notifications
+          </CardTitle>
+          <CardDescription>
+            Configure who receives alerts for this deployment
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertConfigForm
+            alertConfig={formData.alertConfig}
+            onChange={handleAlertConfigChange}
+            deploymentId={id}
+            showGoogleChat={true}
+            showEventConfig={true}
+          />
         </CardContent>
       </Card>
     </div>

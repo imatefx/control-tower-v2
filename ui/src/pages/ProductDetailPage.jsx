@@ -47,6 +47,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import DocumentationList from "@/components/DocumentationList"
 
 const formatStatus = (status) => {
   if (!status) return "Not Started"
@@ -84,6 +85,29 @@ export default function ProductDetailPage() {
     },
     onError: () => {
       toast.error("Failed to delete product")
+    },
+  })
+
+  // Documentation mutations
+  const addDocMutation = useMutation({
+    mutationFn: ({ title, url }) => productsAPI.addDocumentation(id, { title, url }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] })
+      toast.success("Document added successfully")
+    },
+    onError: () => {
+      toast.error("Failed to add document")
+    },
+  })
+
+  const removeDocMutation = useMutation({
+    mutationFn: (docId) => productsAPI.removeDocumentation(id, docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] })
+      toast.success("Document removed successfully")
+    },
+    onError: () => {
+      toast.error("Failed to remove document")
     },
   })
 
@@ -539,53 +563,72 @@ export default function ProductDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Documentation</CardTitle>
-              <CardDescription>Product documentation links and status</CardDescription>
+              <CardDescription>Product documentation links and resources</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {docTypes.map(({ key, label }) => {
-                  const isRelevant = relevantDocs[key] !== false
-                  const hasDoc = documentation[key]
-                  return (
-                    <div
-                      key={key}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${
-                        !isRelevant ? "bg-muted/50 opacity-60" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className={`h-5 w-5 ${hasDoc ? "text-emerald-500" : "text-muted-foreground"}`} />
-                        <div>
-                          <div className="font-medium">{label}</div>
-                          {!isRelevant && (
-                            <div className="text-xs text-muted-foreground">Not applicable</div>
+              {/* New flexible format - uses DocumentationList */}
+              {Array.isArray(documentation) ? (
+                <DocumentationList
+                  documents={documentation}
+                  onAdd={canEdit() ? (title, url) => addDocMutation.mutate({ title, url }) : undefined}
+                  onRemove={canEdit() ? (docId) => removeDocMutation.mutate(docId) : undefined}
+                  editable={canEdit()}
+                  isAddPending={addDocMutation.isPending}
+                  isRemovePending={removeDocMutation.isPending}
+                  emptyMessage="No documentation added for this product yet"
+                />
+              ) : (
+                /* Legacy format - display old hardcoded doc types */
+                <div className="space-y-4">
+                  {docTypes.map(({ key, label }) => {
+                    const isRelevant = relevantDocs[key] !== false
+                    const hasDoc = documentation[key]
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          !isRelevant ? "bg-muted/50 opacity-60" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className={`h-5 w-5 ${hasDoc ? "text-emerald-500" : "text-muted-foreground"}`} />
+                          <div>
+                            <div className="font-medium">{label}</div>
+                            {!isRelevant && (
+                              <div className="text-xs text-muted-foreground">Not applicable</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasDoc ? (
+                            <a
+                              href={hasDoc}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              <LinkIcon className="h-4 w-4" />
+                              View
+                            </a>
+                          ) : isRelevant ? (
+                            <Badge variant="destructive-soft" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Missing
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">N/A</Badge>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {hasDoc ? (
-                          <a
-                            href={hasDoc}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1"
-                          >
-                            <LinkIcon className="h-4 w-4" />
-                            View
-                          </a>
-                        ) : isRelevant ? (
-                          <Badge variant="destructive-soft" className="gap-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            Missing
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">N/A</Badge>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                  {canEdit() && (
+                    <p className="text-sm text-muted-foreground mt-4 pt-4 border-t">
+                      To manage documentation, <Link to={`/products/${id}/edit`} className="text-primary hover:underline">edit this product</Link> to migrate to the new flexible format.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Notification Emails */}
               {product.notificationEmails && product.notificationEmails.length > 0 && (

@@ -11,7 +11,7 @@ module.exports = {
     fields: ["id", "name", "description", "productOwner", "engineeringOwner",
              "deliveryLead", "nextReleaseDate", "parentId", "parentName", "documentation",
              "relevantDocs", "eap", "isAdapter", "adapterServices",
-             "notificationEmails", "subProductCount", "createdAt", "updatedAt"],
+             "notificationEmails", "alertConfig", "subProductCount", "createdAt", "updatedAt"],
     entityValidator: {
       name: { type: "string", min: 1, max: 200 }
     },
@@ -65,7 +65,14 @@ module.exports = {
           hasMappingService: false, hasConstructionService: false
         }
       },
-      notificationEmails: { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] }
+      notificationEmails: { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] },
+      alertConfig: {
+        type: DataTypes.JSONB,
+        defaultValue: {
+          googleChatWebhookUrl: null,
+          defaultNotifyOwners: true
+        }
+      }
     },
     options: { timestamps: true, paranoid: true, underscored: true }
   },
@@ -79,6 +86,98 @@ module.exports = {
 
         const children = await this.adapter.find({ query: { parentId: ctx.params.id } });
         return { ...product, children };
+      }
+    },
+
+    addDocumentation: {
+      params: {
+        id: "string",
+        title: "string",
+        url: "string"
+      },
+      async handler(ctx) {
+        const { id, title, url } = ctx.params;
+        const product = await this.adapter.findById(id);
+        if (!product) throw new Error("Product not found");
+
+        // Migrate old format if needed
+        let docs = this.migrateDocumentation(product);
+
+        const doc = {
+          id: require("uuid").v4(),
+          title,
+          url,
+          addedAt: new Date()
+        };
+
+        const documentation = [...docs, doc];
+
+        // Use Sequelize model directly for proper JSONB update
+        await this.adapter.model.update(
+          { documentation },
+          { where: { id } }
+        );
+
+        // Log audit
+        try {
+          await ctx.call("audit.log", {
+            userId: ctx.meta.user?.id,
+            userName: ctx.meta.user?.name,
+            userEmail: ctx.meta.user?.email,
+            action: "update",
+            resourceType: "product",
+            resourceId: id,
+            resourceName: product.name,
+            changes: [{ field: "documentation", oldValue: null, newValue: `Added: ${title}` }],
+            metadata: { ipAddress: ctx.meta.ipAddress }
+          });
+        } catch (err) {
+          this.logger.warn("Failed to create audit log:", err.message);
+        }
+
+        return this.adapter.findById(id);
+      }
+    },
+
+    removeDocumentation: {
+      params: {
+        id: "string",
+        docId: "string"
+      },
+      async handler(ctx) {
+        const { id, docId } = ctx.params;
+        const product = await this.adapter.findById(id);
+        if (!product) throw new Error("Product not found");
+
+        // Migrate old format if needed
+        let docs = this.migrateDocumentation(product);
+        const removedDoc = docs.find(d => d.id === docId);
+        const documentation = docs.filter(d => d.id !== docId);
+
+        // Use Sequelize model directly for proper JSONB update
+        await this.adapter.model.update(
+          { documentation },
+          { where: { id } }
+        );
+
+        // Log audit
+        try {
+          await ctx.call("audit.log", {
+            userId: ctx.meta.user?.id,
+            userName: ctx.meta.user?.name,
+            userEmail: ctx.meta.user?.email,
+            action: "update",
+            resourceType: "product",
+            resourceId: id,
+            resourceName: product.name,
+            changes: [{ field: "documentation", oldValue: removedDoc?.title || docId, newValue: "Removed" }],
+            metadata: { ipAddress: ctx.meta.ipAddress }
+          });
+        } catch (err) {
+          this.logger.warn("Failed to create audit log:", err.message);
+        }
+
+        return this.adapter.findById(id);
       }
     },
 
@@ -271,6 +370,53 @@ module.exports = {
           return res;
         }
       ]
+    }
+  },
+
+  methods: {
+    /**
+     * Migrate old documentation format (object with fixed keys) to new format (array)
+     * Old format: { productGuide: url, releaseNotes: url, ... }
+     * New format: [{ id, title, url, addedAt }]
+     */
+    migrateDocumentation(product) {
+      const documentation = product.documentation;
+
+      // Already in new format (array)
+      if (Array.isArray(documentation)) {
+        return documentation;
+      }
+
+      // Empty or null - return empty array
+      if (!documentation || typeof documentation !== "object") {
+        return [];
+      }
+
+      // Old format - convert to new format
+      const typeLabels = {
+        productGuide: "Product Guide",
+        releaseNotes: "Release Notes",
+        demoScript: "Demo Script",
+        testCases: "Test Cases",
+        productionChecklist: "Production Checklist"
+      };
+
+      const relevantDocs = product.relevantDocs || {};
+      const docs = [];
+
+      Object.entries(documentation).forEach(([key, url]) => {
+        // Only include if URL exists and doc is marked as relevant
+        if (url && relevantDocs[key] !== false) {
+          docs.push({
+            id: require("uuid").v4(),
+            title: typeLabels[key] || key,
+            url,
+            addedAt: new Date()
+          });
+        }
+      });
+
+      return docs;
     }
   }
 };

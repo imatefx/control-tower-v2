@@ -23,6 +23,7 @@ import {
   LogOut,
   Clock,
   TrendingUp,
+  Grid3X3,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ const navigationGroups = [
       { name: "Upcoming Releases", href: "/releases", icon: TrendingUp, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Products", href: "/products", icon: Package, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Clients", href: "/clients", icon: Users, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
+      { name: "Product Overview", href: "/client-product-overview", icon: Grid3X3, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Deployments", href: "/deployments", icon: Rocket, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },
       { name: "Onboarding", href: "/onboarding", icon: ClipboardList, roles: ["admin", "user", "delivery_lead"] },
       { name: "Release Notes", href: "/release-notes", icon: FileText, roles: ["admin", "user", "viewer", "delivery_lead", "product_owner", "engineering_manager"] },

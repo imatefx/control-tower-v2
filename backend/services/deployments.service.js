@@ -12,7 +12,7 @@ module.exports = {
              "deploymentType", "environment", "nextDeliveryDate", "featureName",
              "releaseItems", "deliveryPerson", "ownerId", "ownerName", "notes", "documentation", "relevantDocs",
              "equipmentSAStatus", "equipmentSEStatus", "mappingStatus", "constructionStatus",
-             "blockedComments", "statusHistory", "notificationEmails", "lastNotificationSent", "createdAt", "updatedAt"],
+             "blockedComments", "statusHistory", "notificationEmails", "lastNotificationSent", "alertConfig", "createdAt", "updatedAt"],
     entityValidator: {
       clientId: { type: "uuid" },
       productId: { type: "uuid" },
@@ -59,7 +59,30 @@ module.exports = {
       blockedComments: { type: DataTypes.JSONB, defaultValue: [] },
       statusHistory: { type: DataTypes.JSONB, defaultValue: [] },
       notificationEmails: { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] },
-      lastNotificationSent: { type: DataTypes.JSONB, defaultValue: {} }
+      lastNotificationSent: { type: DataTypes.JSONB, defaultValue: {} },
+      alertConfig: {
+        type: DataTypes.JSONB,
+        defaultValue: {
+          enabled: true,
+          notifyProductOwners: true,
+          notifyEngineeringOwners: true,
+          notifyDeliveryLead: true,
+          additionalEmails: [],
+          googleChat: {
+            enabled: false,
+            webhookUrl: null,
+            useProductWebhook: true
+          },
+          events: {
+            onCreated: true,
+            onStatusChange: true,
+            onBlocked: true,
+            onReleased: true,
+            onApproaching: true,
+            onOverdue: true
+          }
+        }
+      }
     },
     options: { timestamps: true, paranoid: true, underscored: true }
   },

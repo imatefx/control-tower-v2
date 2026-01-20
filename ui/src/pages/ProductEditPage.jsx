@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Package, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Package, Loader2, Save, FileText } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import DocumentationList from "@/components/DocumentationList"
 
 export default function ProductEditPage() {
   const { id } = useParams()
@@ -87,6 +88,29 @@ export default function ProductEditPage() {
     },
     onError: () => {
       toast.error("Failed to save product")
+    },
+  })
+
+  // Documentation mutations
+  const addDocMutation = useMutation({
+    mutationFn: ({ title, url }) => productsAPI.addDocumentation(id, { title, url }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] })
+      toast.success("Document added successfully")
+    },
+    onError: () => {
+      toast.error("Failed to add document")
+    },
+  })
+
+  const removeDocMutation = useMutation({
+    mutationFn: (docId) => productsAPI.removeDocumentation(id, docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] })
+      toast.success("Document removed successfully")
+    },
+    onError: () => {
+      toast.error("Failed to remove document")
     },
   })
 
@@ -309,20 +333,45 @@ export default function ProductEditPage() {
                 </div>
               )}
             </div>
-
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" asChild>
-                <Link to={`/products/${id}`}>Cancel</Link>
-              </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
+
+      {/* Documentation Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Documentation
+          </CardTitle>
+          <CardDescription>
+            Manage product documentation links (guides, release notes, etc.)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DocumentationList
+            documents={product?.documentation || []}
+            onAdd={(title, url) => addDocMutation.mutate({ title, url })}
+            onRemove={(docId) => removeDocMutation.mutate(docId)}
+            editable={true}
+            isAddPending={addDocMutation.isPending}
+            isRemovePending={removeDocMutation.isPending}
+            emptyMessage="No documentation added for this product yet"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Form Actions */}
+      <div className="flex justify-end gap-4">
+        <Button variant="outline" asChild>
+          <Link to={`/products/${id}`}>Cancel</Link>
+        </Button>
+        <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
+          {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Save className="mr-2 h-4 w-4" />
+          Save Changes
+        </Button>
+      </div>
     </div>
   )
 }
