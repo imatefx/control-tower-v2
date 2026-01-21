@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { deploymentsAPI, productsAPI, clientsAPI } from "@/services/api"
@@ -725,9 +726,24 @@ function ParentProductGroup({ product, subProducts, deployments, allDeployments,
 }
 
 export default function DeploymentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState("")
   const [view, setView] = useState("grouped") // Default to grouped
-  const [statusFilter, setStatusFilter] = useState("all")
+
+  // Read initial status filter from URL params
+  const initialStatus = searchParams.get("status") || "all"
+  const [statusFilter, setStatusFilter] = useState(initialStatus)
+
+  // Update URL when status filter changes
+  const handleStatusFilterChange = (newStatus) => {
+    setStatusFilter(newStatus)
+    if (newStatus === "all") {
+      searchParams.delete("status")
+    } else {
+      searchParams.set("status", newStatus)
+    }
+    setSearchParams(searchParams)
+  }
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formStep, setFormStep] = useState(1) // Step 1: type, Step 2: details
   const [editingDeployment, setEditingDeployment] = useState(null)
@@ -974,6 +990,26 @@ export default function DeploymentsPage() {
           const dateA = new Date(a.nextDeliveryDate || a.targetDate)
           const dateB = new Date(b.nextDeliveryDate || b.targetDate)
           return dateA - dateB // Ascending order
+        })
+    }
+
+    if (statusFilter === "overdue") {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      return deployments.rows
+        .filter(d => {
+          const targetDate = d.nextDeliveryDate || d.targetDate
+          if (!targetDate) return false
+          if (d.status === "Released") return false
+          const date = new Date(targetDate)
+          date.setHours(0, 0, 0, 0)
+          return date < today
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.nextDeliveryDate || a.targetDate)
+          const dateB = new Date(b.nextDeliveryDate || b.targetDate)
+          return dateA - dateB // Ascending order (most overdue first)
         })
     }
 

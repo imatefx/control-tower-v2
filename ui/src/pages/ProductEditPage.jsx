@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Package, Loader2, Save, FileText } from "lucide-react"
+import { ArrowLeft, Package, Loader2, Save, FileText, Plug } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import DocumentationList from "@/components/DocumentationList"
 
@@ -31,10 +31,16 @@ export default function ProductEditPage() {
     description: "",
     productOwner: "",
     engineeringOwner: "",
+    deliveryLead: "",
     parentId: "",
     isEap: false,
     eapJiraBoardUrl: "",
     eapClients: [],  // Array of { clientId, clientName, startDate, endDate }
+    isAdapter: false,
+    hasEquipmentSA: false,
+    hasEquipmentSE: false,
+    hasMappingService: false,
+    hasConstructionService: false,
   })
 
   const { data: product, isLoading } = useQuery({
@@ -59,10 +65,16 @@ export default function ProductEditPage() {
         description: product.description || "",
         productOwner: product.productOwner || "",
         engineeringOwner: product.engineeringOwner || "",
+        deliveryLead: product.deliveryLead || "",
         parentId: product.parentId || "",
         isEap: product.eap?.isActive || false,
         eapJiraBoardUrl: product.eap?.jiraBoardUrl || "",
         eapClients: product.eap?.clients || [],
+        isAdapter: product.isAdapter || false,
+        hasEquipmentSA: product.adapterServices?.hasEquipmentSA || false,
+        hasEquipmentSE: product.adapterServices?.hasEquipmentSE || false,
+        hasMappingService: product.adapterServices?.hasMappingService || false,
+        hasConstructionService: product.adapterServices?.hasConstructionService || false,
       })
     }
   }, [product])
@@ -70,12 +82,23 @@ export default function ProductEditPage() {
   const updateMutation = useMutation({
     mutationFn: (data) => {
       const payload = {
-        ...data,
+        name: data.name,
+        description: data.description,
+        productOwner: data.productOwner,
+        engineeringOwner: data.engineeringOwner,
+        deliveryLead: data.deliveryLead,
         parentId: data.parentId || null,
         eap: {
           isActive: data.isEap,
           jiraBoardUrl: data.eapJiraBoardUrl || null,
           clients: data.eapClients || [],
+        },
+        isAdapter: data.isAdapter,
+        adapterServices: {
+          hasEquipmentSA: data.hasEquipmentSA,
+          hasEquipmentSE: data.hasEquipmentSE,
+          hasMappingService: data.hasMappingService,
+          hasConstructionService: data.hasConstructionService,
         },
       }
       return productsAPI.update(id, payload)
@@ -217,6 +240,16 @@ export default function ProductEditPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="deliveryLead">Delivery Lead</Label>
+              <Input
+                id="deliveryLead"
+                value={formData.deliveryLead}
+                onChange={(e) => setFormData({ ...formData, deliveryLead: e.target.value })}
+                placeholder="Primary owner for deployments"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="productOwner">Product Owner</Label>
@@ -329,6 +362,57 @@ export default function ProductEditPage() {
                         {formData.eapClients.length} client(s) selected
                       </p>
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Adapter Section */}
+            <div className="space-y-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isAdapter"
+                  checked={formData.isAdapter}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isAdapter: checked })}
+                />
+                <Label htmlFor="isAdapter" className="font-medium flex items-center gap-2">
+                  <Plug className="h-4 w-4 text-amber-500" />
+                  This is an Adapter Product
+                </Label>
+              </div>
+
+              {formData.isAdapter && (
+                <div className="space-y-4 pl-6 border-l-2 border-amber-300">
+                  <p className="text-sm text-muted-foreground">Select adapter services:</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.hasEquipmentSA}
+                        onCheckedChange={(checked) => setFormData({ ...formData, hasEquipmentSA: checked })}
+                      />
+                      <span className="text-sm">Equipment SA</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.hasEquipmentSE}
+                        onCheckedChange={(checked) => setFormData({ ...formData, hasEquipmentSE: checked })}
+                      />
+                      <span className="text-sm">Equipment SE</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.hasMappingService}
+                        onCheckedChange={(checked) => setFormData({ ...formData, hasMappingService: checked })}
+                      />
+                      <span className="text-sm">Mapping Service</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.hasConstructionService}
+                        onCheckedChange={(checked) => setFormData({ ...formData, hasConstructionService: checked })}
+                      />
+                      <span className="text-sm">Construction Service</span>
+                    </label>
                   </div>
                 </div>
               )}

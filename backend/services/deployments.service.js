@@ -323,6 +323,23 @@ module.exports = {
             await ctx.call("checklists.create", { deploymentId: res.id, item, isCompleted: false });
           }
 
+          // Auto-add product to client's productIds if not already present
+          if (res.clientId && res.productId) {
+            try {
+              const client = await ctx.call("clients.get", { id: res.clientId });
+              if (client) {
+                const existingProductIds = client.productIds || [];
+                if (!existingProductIds.includes(res.productId)) {
+                  const updatedProductIds = [...existingProductIds, res.productId];
+                  await ctx.call("clients.update", { id: res.clientId, productIds: updatedProductIds });
+                  this.logger.info(`Auto-added product ${res.productId} to client ${res.clientId}`);
+                }
+              }
+            } catch (err) {
+              this.logger.warn("Failed to auto-add product to client:", err.message);
+            }
+          }
+
           // Audit log
           try {
             await ctx.call("audit.log", {

@@ -421,6 +421,7 @@ export default function DashboardPage() {
           value={statusCounts.completed}
           icon={CheckCircle}
           color="emerald"
+          href="/deployments?status=Released"
           secondaryLabel="Blocked"
           secondaryValue={statusCounts.blocked}
           trend={totalDeployments > 0 ? `${Math.round((statusCounts.completed / totalDeployments) * 100)}% completion rate` : undefined}
@@ -432,42 +433,48 @@ export default function DashboardPage() {
       {(overdueDeployments.length > 0 || blockedDeployments.length > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
           {overdueDeployments.length > 0 && (
-            <Card className="border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900">
-                    <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-rose-700 dark:text-rose-300">
-                      {overdueDeployments.length} Overdue Deployment{overdueDeployments.length !== 1 ? "s" : ""}
+            <Link to="/deployments?status=overdue">
+              <Card className="border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900">
+                      <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                     </div>
-                    <div className="text-sm text-rose-600 dark:text-rose-400">
-                      Requires immediate attention
+                    <div className="flex-1">
+                      <div className="font-semibold text-rose-700 dark:text-rose-300">
+                        {overdueDeployments.length} Overdue Deployment{overdueDeployments.length !== 1 ? "s" : ""}
+                      </div>
+                      <div className="text-sm text-rose-600 dark:text-rose-400">
+                        Requires immediate attention
+                      </div>
                     </div>
+                    <ChevronRight className="h-5 w-5 text-rose-400" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           )}
           {blockedDeployments.length > 0 && (
-            <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-amber-700 dark:text-amber-300">
-                      {blockedDeployments.length} Blocked Deployment{blockedDeployments.length !== 1 ? "s" : ""}
+            <Link to="/deployments?status=Blocked">
+              <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
-                    <div className="text-sm text-amber-600 dark:text-amber-400">
-                      Waiting for resolution
+                    <div className="flex-1">
+                      <div className="font-semibold text-amber-700 dark:text-amber-300">
+                        {blockedDeployments.length} Blocked Deployment{blockedDeployments.length !== 1 ? "s" : ""}
+                      </div>
+                      <div className="text-sm text-amber-600 dark:text-amber-400">
+                        Waiting for resolution
+                      </div>
                     </div>
+                    <ChevronRight className="h-5 w-5 text-amber-400" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           )}
         </div>
       )}
@@ -622,7 +629,7 @@ export default function DashboardPage() {
               )}
               {inProgressDeployments.length > 6 && (
                 <Link
-                  to="/deployments?status=in_progress"
+                  to="/deployments?status=In Progress"
                   className="flex items-center justify-center gap-1 text-sm text-primary hover:underline pt-2"
                 >
                   +{inProgressDeployments.length - 6} more in progress
@@ -687,7 +694,7 @@ export default function DashboardPage() {
             {productsWithUpcoming.length > 6 && (
               <div className="mt-4 text-center">
                 <Link
-                  to="/products?filter=upcoming"
+                  to="/products"
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                 >
                   View all {productsWithUpcoming.length} products

@@ -198,7 +198,7 @@ module.exports = {
       ],
       list: [
         async function(ctx, res) {
-          // Add deployment counts to each client
+          // Add deployment counts and product counts to each client
           if (res.rows && res.rows.length > 0) {
             const deployments = await ctx.call("deployments.find", {});
             const countMap = {};
@@ -207,7 +207,8 @@ module.exports = {
             });
             res.rows = res.rows.map(c => ({
               ...c,
-              deploymentCount: countMap[c.id] || 0
+              deploymentCount: countMap[c.id] || 0,
+              productCount: Array.isArray(c.productIds) ? c.productIds.length : 0
             }));
           }
           return res;
@@ -218,6 +219,7 @@ module.exports = {
           if (res) {
             const deployments = await ctx.call("deployments.find", { query: { clientId: res.id } });
             res.deploymentCount = deployments.length;
+            res.productCount = Array.isArray(res.productIds) ? res.productIds.length : 0;
           }
           return res;
         }

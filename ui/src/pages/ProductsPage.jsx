@@ -23,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -41,14 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
   Plus,
@@ -64,19 +56,14 @@ import {
   User,
   Rocket,
   FlaskConical,
-  Layers,
-  Users,
   GitBranch,
-  FileText,
   ChevronRight,
-  Filter,
   Plug,
-  Cog,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 // Product Card Component - Enhanced
-function ProductCard({ product, onEdit, onDelete, canEdit }) {
+function ProductCard({ product, onDelete, canEdit }) {
   // Calculate a "health" score based on data completeness
   const getHealthScore = () => {
     let score = 0
@@ -123,9 +110,11 @@ function ProductCard({ product, onEdit, onDelete, canEdit }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(product)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
+                <DropdownMenuItem asChild>
+                  <Link to={`/products/${product.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive"
@@ -240,22 +229,11 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("")
   const [view, setView] = useState("cards")
   const [productFilter, setProductFilter] = useState("main") // "all", "main", "sub"
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null })
-  const [formData, setFormData] = useState({
+  const [createFormData, setCreateFormData] = useState({
     name: "",
     description: "",
-    productOwner: "",
-    engineeringOwner: "",
-    deliveryLead: "",
-    parentId: "",
-    isEap: false,
-    isAdapter: false,
-    hasEquipmentSA: false,
-    hasEquipmentSE: false,
-    hasMappingService: false,
-    hasConstructionService: false,
   })
   const queryClient = useQueryClient()
   const { canEdit } = useAuth()
@@ -263,11 +241,6 @@ export default function ProductsPage() {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", search],
     queryFn: () => productsAPI.list({ search }),
-  })
-
-  const { data: mainProducts } = useQuery({
-    queryKey: ["products", "main"],
-    queryFn: () => productsAPI.list({ type: "main" }),
   })
 
   // Filter products based on selection
@@ -285,23 +258,12 @@ export default function ProductsPage() {
     mutationFn: productsAPI.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] })
-      closeDialog()
+      setCreateDialogOpen(false)
+      setCreateFormData({ name: "", description: "" })
       toast.success("Product created successfully")
     },
     onError: () => {
       toast.error("Failed to create product")
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }) => productsAPI.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] })
-      closeDialog()
-      toast.success("Product updated successfully")
-    },
-    onError: () => {
-      toast.error("Failed to update product")
     },
   })
 
@@ -317,78 +279,12 @@ export default function ProductsPage() {
     },
   })
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      productOwner: "",
-      engineeringOwner: "",
-      deliveryLead: "",
-      parentId: "",
-      isEap: false,
-      isAdapter: false,
-      hasEquipmentSA: false,
-      hasEquipmentSE: false,
-      hasMappingService: false,
-      hasConstructionService: false,
-    })
-  }
-
-  const closeDialog = () => {
-    setDialogOpen(false)
-    setEditingProduct(null)
-    resetForm()
-  }
-
-  const openEditDialog = (product) => {
-    setEditingProduct(product)
-    setFormData({
-      name: product.name || "",
-      description: product.description || "",
-      productOwner: product.productOwner || "",
-      engineeringOwner: product.engineeringOwner || "",
-      deliveryLead: product.deliveryLead || "",
-      parentId: product.parentId || "",
-      isEap: product.eap?.isActive || false,
-      isAdapter: product.isAdapter || false,
-      hasEquipmentSA: product.adapterServices?.hasEquipmentSA || false,
-      hasEquipmentSE: product.adapterServices?.hasEquipmentSE || false,
-      hasMappingService: product.adapterServices?.hasMappingService || false,
-      hasConstructionService: product.adapterServices?.hasConstructionService || false,
-    })
-    setDialogOpen(true)
-  }
-
-  const openCreateDialog = () => {
-    setEditingProduct(null)
-    resetForm()
-    setDialogOpen(true)
-  }
-
-  const handleSubmit = (e) => {
+  const handleCreateSubmit = (e) => {
     e.preventDefault()
-    const payload = {
-      name: formData.name,
-      description: formData.description,
-      productOwner: formData.productOwner,
-      engineeringOwner: formData.engineeringOwner,
-      deliveryLead: formData.deliveryLead,
-      parentId: formData.parentId || null,
-      eap: { isActive: formData.isEap },
-      isAdapter: formData.isAdapter,
-      adapterServices: {
-        hasEquipmentSA: formData.hasEquipmentSA,
-        hasEquipmentSE: formData.hasEquipmentSE,
-        hasMappingService: formData.hasMappingService,
-        hasConstructionService: formData.hasConstructionService,
-      },
-    }
-
-    if (editingProduct) {
-      updateMutation.mutate({ id: editingProduct.id, ...payload })
-    } else {
-      createMutation.mutate(payload)
-    }
+    createMutation.mutate({
+      name: createFormData.name,
+      description: createFormData.description,
+    })
   }
 
   const handleDelete = () => {
@@ -403,7 +299,7 @@ export default function ProductsPage() {
     standalone: "outline",
   }
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isSubmitting = createMutation.isPending
 
   // Stats for the filter badges
   const mainCount = products?.rows?.filter(p => !p.parentId).length || 0
@@ -423,186 +319,57 @@ export default function ProductsPage() {
           <p className="text-muted-foreground mt-1">Manage your product catalog</p>
         </div>
         {canEdit() && (
-          <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreateDialog}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
-                  <DialogDescription>
-                    {editingProduct ? "Update product details" : "Create a new product in the catalog"}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="deliveryLead" className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-cyan-500" />
-                        Delivery Lead
-                      </Label>
-                      <Input
-                        id="deliveryLead"
-                        value={formData.deliveryLead}
-                        onChange={(e) => setFormData({ ...formData, deliveryLead: e.target.value })}
-                        placeholder="Primary owner for deployments"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="productOwner" className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-amber-500" />
-                          Product Owner
-                        </Label>
-                        <Input
-                          id="productOwner"
-                          value={formData.productOwner}
-                          onChange={(e) => setFormData({ ...formData, productOwner: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="engineeringOwner" className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-emerald-500" />
-                          Engineering Owner
-                        </Label>
-                        <Input
-                          id="engineeringOwner"
-                          value={formData.engineeringOwner}
-                          onChange={(e) => setFormData({ ...formData, engineeringOwner: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="parentId">Parent Product (makes this a sub-product)</Label>
-                    <Select
-                      value={formData.parentId || "none"}
-                      onValueChange={(value) => setFormData({ ...formData, parentId: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select parent product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None (Main Product)</SelectItem>
-                        {mainProducts?.rows?.filter(p => p.id !== editingProduct?.id).map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isEap"
-                      checked={formData.isEap}
-                      onChange={(e) => setFormData({ ...formData, isEap: e.target.checked })}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <Label htmlFor="isEap" className="flex items-center gap-2">
-                      <FlaskConical className="h-4 w-4 text-purple-500" />
-                      Early Access Program (EAP)
-                    </Label>
-                  </div>
-
-                  {/* Adapter Section */}
-                  <div className="border-t pt-4 mt-4 space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="isAdapter"
-                        checked={formData.isAdapter}
-                        onChange={(e) => setFormData({ ...formData, isAdapter: e.target.checked })}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                      <Label htmlFor="isAdapter" className="flex items-center gap-2">
-                        <Plug className="h-4 w-4 text-amber-500" />
-                        This is an Adapter Product
-                      </Label>
-                    </div>
-
-                    {formData.isAdapter && (
-                      <div className="ml-6 p-3 bg-muted rounded-lg space-y-2">
-                        <p className="text-xs text-muted-foreground mb-2">Select adapter services:</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.hasEquipmentSA}
-                              onChange={(e) => setFormData({ ...formData, hasEquipmentSA: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <span className="text-sm">Equipment SA</span>
-                          </label>
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.hasEquipmentSE}
-                              onChange={(e) => setFormData({ ...formData, hasEquipmentSE: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <span className="text-sm">Equipment SE</span>
-                          </label>
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.hasMappingService}
-                              onChange={(e) => setFormData({ ...formData, hasMappingService: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <span className="text-sm">Mapping Service</span>
-                          </label>
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.hasConstructionService}
-                              onChange={(e) => setFormData({ ...formData, hasConstructionService: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <span className="text-sm">Construction Service</span>
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={closeDialog}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {editingProduct ? "Save Changes" : "Create"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
         )}
       </div>
+
+      {/* Create Product Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleCreateSubmit}>
+            <DialogHeader>
+              <DialogTitle>Add New Product</DialogTitle>
+              <DialogDescription>
+                Create a new product. You can add more details after creation.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={createFormData.name}
+                  onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
+                  placeholder="Product name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={createFormData.description}
+                  onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
+                  placeholder="Brief description of the product"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Search, Filter, and View Toggle */}
       <div className="flex items-center justify-between gap-4">
@@ -698,7 +465,6 @@ export default function ProductsPage() {
             <ProductCard
               key={product.id}
               product={product}
-              onEdit={openEditDialog}
               onDelete={(p) => setDeleteDialog({ open: true, product: p })}
               canEdit={canEdit()}
             />
@@ -776,9 +542,11 @@ export default function ProductsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(product)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                              <DropdownMenuItem asChild>
+                                <Link to={`/products/${product.id}/edit`}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
